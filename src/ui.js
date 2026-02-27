@@ -4,9 +4,10 @@ import { addDays, format, parseISO, startOfMonth, endOfMonth, getDay, addMonths,
 
 // State
 let currentUser = null;
-let currentView = 'calendar'; // 'calendar' or 'congregations'
-let currentMonth = new Date(); // tracks which month is displayed
-let activeAssemblyId = null; // Track current assembly for details view
+let currentView = 'calendar';
+let currentMonth = new Date();
+let activeAssemblyId = null;
+let congSortOrder = 'name-asc'; // 'name-asc' | 'name-desc' | 'visit-oldest' | 'visit-newest'
 
 const setView = (v) => {
     currentView = v;
@@ -422,7 +423,15 @@ const renderCongregationsView = async (container) => {
                 <div class="bg-white dark:bg-slate-800 shadow-sm rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700">
                     <div class="px-8 py-6 border-b border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-700/50 flex justify-between items-center">
                         <h2 class="text-lg font-bold text-slate-700 dark:text-slate-200">Congregations Directory</h2>
-                        <span class="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">All Locations</span>
+                        <div class="flex items-center gap-2">
+                            <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L13 13.414V19a1 1 0 01-.553.894l-4 2A1 1 0 017 21v-7.586L3.293 6.707A1 1 0 013 6V4z"/></svg>
+                            <select id="cong-sort" class="text-xs font-semibold text-slate-600 dark:text-slate-300 bg-transparent border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-orange-500 cursor-pointer">
+                                <option value="name-asc">Name A → Z</option>
+                                <option value="name-desc">Name Z → A</option>
+                                <option value="visit-oldest">Last visit — Oldest first</option>
+                                <option value="visit-newest">Last visit — Newest first</option>
+                            </select>
+                        </div>
                     </div>
                     <ul id="cong-list" class="divide-y divide-slate-100 dark:divide-slate-700">
                         <li class="p-8 text-center text-slate-400 italic">Loading congregations...</li>
@@ -453,6 +462,15 @@ const renderCongregationsView = async (container) => {
             loadCongregations();
         } catch (err) { alert("Error: " + err.message); }
     });
+
+    // Restore and wire sort dropdown
+    const sortSelect = document.getElementById('cong-sort');
+    sortSelect.value = congSortOrder;
+    sortSelect.addEventListener('change', () => {
+        congSortOrder = sortSelect.value;
+        loadCongregations();
+    });
+
     loadCongregations();
 };
 
@@ -470,8 +488,36 @@ const loadCongregations = async () => {
         const visitData = await Promise.all(congs.map(c => getLastTwoVisits(c.id)));
         const today = new Date();
 
-        list.innerHTML = congs.map((c, i) => {
-            const { last, previous } = visitData[i];
+        // Build combined array for sorting
+        let entries = congs.map((c, i) => ({ c, visits: visitData[i] }));
+
+        if (congSortOrder === 'name-desc') {
+            entries.sort((a, b) => b.c.name.localeCompare(a.c.name));
+        } else if (congSortOrder === 'visit-oldest') {
+            // Null (never visited) goes to the bottom
+            entries.sort((a, b) => {
+                const da = a.visits.last?.date ?? null;
+                const db = b.visits.last?.date ?? null;
+                if (!da && !db) return 0;
+                if (!da) return 1;
+                if (!db) return -1;
+                return da - db; // oldest date first
+            });
+        } else if (congSortOrder === 'visit-newest') {
+            entries.sort((a, b) => {
+                const da = a.visits.last?.date ?? null;
+                const db = b.visits.last?.date ?? null;
+                if (!da && !db) return 0;
+                if (!da) return 1;
+                if (!db) return -1;
+                return db - da; // newest date first
+            });
+        }
+        // default 'name-asc' — already sorted by Firestore
+
+
+        list.innerHTML = entries.map(({ c, visits }) => {
+            const { last, previous } = visits;
 
             let visitHtml = '<span class="text-slate-300 dark:text-slate-600 italic text-xs">Never visited</span>';
 
@@ -1070,7 +1116,9 @@ const renderAssembliesView = async (container) => {
                     <td class="px-6 py-4 text-sm text-slate-600 dark:text-slate-400">${dateStr}</td>
                     <td class="px-6 py-4 text-sm text-slate-600 dark:text-slate-400">${a.location || 'TBD'}</td>
                     <td class="px-6 py-4">
-                        <span class="px-2.5 py-1 rounded-full text-xs font-bold ${statusClass}">${a.status || 'Draft'}</span>
+                        <button class="status-toggle-btn px-2.5 py-1 rounded-full text-xs font-bold transition-all hover:ring-2 hover:ring-offset-2 focus:outline-none ${statusClass}" data-id="${a.id}" data-status="${a.status || 'Draft'}">
+                            ${a.status || 'Draft'}
+                        </button>
                     </td>
                     <td class="px-6 py-4 text-right">
                         <div class="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -1100,9 +1148,35 @@ const renderAssembliesView = async (container) => {
     document.querySelectorAll('.view-assembly-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
             e.stopPropagation();
-            const id = btn.dataset.id;
-            activeAssemblyId = id;
+            activeAssemblyId = btn.dataset.id;
             setView('assembly-details');
+        });
+    });
+
+    // Wire up Status Toggle buttons
+    document.querySelectorAll('.status-toggle-btn').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            const id = btn.dataset.id;
+            const currentStatus = btn.dataset.status;
+
+            const statusWorkflow = ['Draft', 'Upcoming', 'Completed'];
+            let currentIndex = statusWorkflow.indexOf(currentStatus);
+            if (currentIndex === -1) currentIndex = 0;
+
+            const nextStatus = statusWorkflow[(currentIndex + 1) % statusWorkflow.length];
+
+            try {
+                btn.disabled = true;
+                btn.innerHTML = `<span class="flex items-center gap-1"><svg class="animate-spin h-3 w-3" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" fill="none"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> ${nextStatus}</span>`;
+
+                await updateAssembly(id, { status: nextStatus });
+                renderAssembliesView(container);
+            } catch (err) {
+                console.error("Error updating status:", err);
+                alert("Failed to update status: " + err.message);
+                renderAssembliesView(container);
+            }
         });
     });
 };
