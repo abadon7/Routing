@@ -8,6 +8,7 @@ let currentView = 'calendar';
 let currentMonth = new Date();
 let activeAssemblyId = null;
 let congSortOrder = 'name-asc'; // 'name-asc' | 'name-desc' | 'visit-oldest' | 'visit-newest'
+let currentDesign = localStorage.design || 'default';
 
 const setView = (v) => {
     currentView = v;
@@ -15,7 +16,22 @@ const setView = (v) => {
     renderApp();
 };
 
+const downloadCSV = (filename, content) => {
+    const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    if (link.download !== undefined) {
+        const url = URL.createObjectURL(blob);
+        link.setAttribute("href", url);
+        link.setAttribute("download", filename);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+};
+
 export const initApp = () => {
+    initDesign(); // Initialize design on app start
     onAuthChange((user) => {
         currentUser = user;
         if (user) {
@@ -82,15 +98,39 @@ const toggleTheme = () => {
     console.log('Current theme in localStorage:', localStorage.theme);
 };
 
+// ─── DESIGN LOGIC ─────────────────────────────────────────
+const initDesign = () => {
+    if (currentDesign === 'fluent') {
+        document.documentElement.classList.add('fluent-design');
+    } else {
+        document.documentElement.classList.remove('fluent-design');
+    }
+};
+
+const toggleDesign = () => {
+    console.log('Toggling design...');
+    if (currentDesign === 'default') {
+        currentDesign = 'fluent';
+        document.documentElement.classList.add('fluent-design');
+    } else {
+        currentDesign = 'default';
+        document.documentElement.classList.remove('fluent-design');
+    }
+    localStorage.design = currentDesign;
+    console.log('Current design:', currentDesign);
+    renderApp(); // Rerender to apply structural changes if any
+};
+
 // ─── APP SHELL ───────────────────────────────────────────
 const renderApp = () => {
     initTheme(); // Initialize theme on render
+    initDesign(); // Initialize design on render
 
     const appContainer = document.querySelector('#app');
     appContainer.innerHTML = `
-    <div class="flex h-screen bg-slate-50 dark:bg-slate-900 font-sans overflow-hidden transition-colors duration-300">
+    <div class="flex h-screen bg-slate-50 dark:bg-slate-900 font-sans overflow-hidden transition-colors duration-300 ${currentDesign === 'fluent' ? 'mica' : ''}">
       <!-- Sidebar -->
-      <aside class="w-64 bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 flex flex-col hidden md:flex z-20 transition-colors duration-300">
+      <aside class="w-64 bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 flex flex-col hidden md:flex z-20 transition-colors duration-300 ${currentDesign === 'fluent' ? 'acrylic' : ''}">
         <div class="h-16 flex items-center px-6 border-b border-slate-100 dark:border-slate-700">
             <div class="flex items-center gap-3">
                 <div class="h-8 w-8 bg-orange-500 rounded-lg flex items-center justify-center shadow-sm text-white">
@@ -142,42 +182,51 @@ const renderApp = () => {
       </aside>
 
       <!-- Mobile Header -->
-       <div class="md:hidden fixed top-0 left-0 right-0 h-16 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between px-4 z-30 transition-colors duration-300">
+       <div class="md:hidden fixed top-0 left-0 right-0 h-14 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between px-3 z-30 transition-colors duration-300 ${currentDesign === 'fluent' ? 'acrylic' : ''}">
             <div class="flex items-center gap-2">
-                <div class="h-8 w-8 bg-orange-500 rounded-lg flex items-center justify-center text-white">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                <div class="h-7 w-7 bg-orange-500 rounded-md flex items-center justify-center text-white shadow-sm">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
                 </div>
-                <span class="font-bold text-slate-800 dark:text-white">ServiceSync</span>
+                <span class="font-bold text-slate-800 dark:text-white text-base">ServiceSync</span>
             </div>
-            <button id="mobile-menu-btn" class="text-slate-500 dark:text-slate-400 p-2">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"/></svg>
-            </button>
+            <div class="flex items-center gap-1">
+                <button id="mob-design-toggle-head" class="p-1.5 text-slate-500 dark:text-slate-400">
+                    <span class="material-symbols-outlined text-xl">palette</span>
+                </button>
+                <button id="mobile-menu-btn" class="text-slate-500 dark:text-slate-400 p-1.5 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-lg">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"/></svg>
+                </button>
+            </div>
        </div>
        
        <!-- Mobile Menu Overlay -->
        <div id="mobile-menu" class="md:hidden fixed inset-0 bg-slate-900/50 dark:bg-slate-900/80 z-40 hidden" style="display:none">
-          <div class="absolute right-0 top-0 bottom-0 w-64 bg-white dark:bg-slate-800 shadow-xl flex flex-col p-4 animate-fade-in-down transition-colors duration-300">
-              <div class="flex justify-end mb-4">
-                  <button id="close-mobile-menu" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300">
-                      <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+          <div class="absolute right-0 top-0 bottom-0 w-64 bg-white dark:bg-slate-800 shadow-xl flex flex-col p-3 animate-fade-in-down transition-colors duration-300">
+              <div class="flex items-center justify-between p-3 border-b border-slate-100 dark:border-slate-700 mb-2">
+                  <span class="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-widest">Navigation</span>
+                  <button id="close-mobile-menu" class="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300">
+                      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                   </button>
               </div>
-              <button id="mob-nav-calendar" class="w-full text-left px-4 py-3 rounded-lg text-sm font-medium mb-1 ${currentView === 'calendar' ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-400' : 'text-slate-600 dark:text-slate-400'}">Dashboard</button>
-              <button id="mob-nav-congregations" class="w-full text-left px-4 py-3 rounded-lg text-sm font-medium mb-1 ${currentView === 'congregations' ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-400' : 'text-slate-600 dark:text-slate-400'}">Congregations</button>
-              <div class="mt-4 pt-4 border-t border-slate-100 dark:border-slate-700">
-                  <p class="px-4 text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">Assembly Manager</p>
-                  <button id="mob-nav-assemblies" class="w-full text-left px-4 py-3 rounded-lg text-sm font-medium mb-1 ${currentView === 'assemblies' ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-400' : 'text-slate-600 dark:text-slate-400'}">Assemblies</button>
-                  <button id="mob-nav-speakers" class="w-full text-left px-4 py-3 rounded-lg text-sm font-medium mb-1 ${currentView === 'speakers' ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-400' : 'text-slate-600 dark:text-slate-400'}">Speakers</button>
-                  <button id="mob-nav-reports" class="w-full text-left px-4 py-3 rounded-lg text-sm font-medium mb-1 ${currentView === 'reports' ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-400' : 'text-slate-600 dark:text-slate-400'}">Reports</button>
+              <button id="mob-nav-calendar" class="w-full text-left px-3 py-2.5 rounded-lg text-sm font-medium mb-1 ${currentView === 'calendar' ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-400' : 'text-slate-600 dark:text-slate-400'}">Dashboard</button>
+              <button id="mob-nav-congregations" class="w-full text-left px-3 py-2.5 rounded-lg text-sm font-medium mb-1 ${currentView === 'congregations' ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-400' : 'text-slate-600 dark:text-slate-400'}">Congregations</button>
+              <div class="mt-2 pt-2 border-t border-slate-100 dark:border-slate-700">
+                  <p class="px-3 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1 mt-1">Assembly Manager</p>
+                  <button id="mob-nav-assemblies" class="w-full text-left px-3 py-2.5 rounded-lg text-sm font-medium mb-1 ${currentView === 'assemblies' ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-400' : 'text-slate-600 dark:text-slate-400'}">Assemblies</button>
+                  <button id="mob-nav-speakers" class="w-full text-left px-3 py-2.5 rounded-lg text-sm font-medium mb-1 ${currentView === 'speakers' ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-400' : 'text-slate-600 dark:text-slate-400'}">Speakers</button>
+                  <button id="mob-nav-reports" class="w-full text-left px-3 py-2.5 rounded-lg text-sm font-medium mb-1 ${currentView === 'reports' ? 'bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-400' : 'text-slate-600 dark:text-slate-400'}">Reports</button>
               </div>
-              <div class="mt-4 border-t border-slate-100 dark:border-slate-700 pt-4">
-                <button id="mob-theme-toggle" class="w-full text-left px-4 py-3 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-3">
+              <div class="mt-2 border-t border-slate-100 dark:border-slate-700 pt-2">
+                <button id="mob-theme-toggle" class="w-full text-left px-3 py-2.5 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-3">
                     <span class="dark:hidden">Dark Mode</span>
                     <span class="hidden dark:inline">Light Mode</span>
                 </button>
+                <button id="mob-design-toggle" class="w-full text-left px-3 py-2.5 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-3">
+                    <span>Change Design</span>
+                </button>
               </div>
-              <div class="mt-auto border-t border-slate-100 dark:border-slate-700 pt-4">
-                  <button id="mob-logout-btn" class="w-full text-left px-4 py-3 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-900/10">Logout</button>
+              <div class="mt-auto border-t border-slate-100 dark:border-slate-700 pt-2">
+                  <button id="mob-logout-btn" class="w-full text-left px-3 py-2 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-900/10">Logout</button>
               </div>
           </div>
        </div>
@@ -185,7 +234,7 @@ const renderApp = () => {
       <!-- Main Content -->
       <main class="flex-1 flex flex-col min-w-0 overflow-hidden relative transition-colors duration-300">
          <!-- Top Bar -->
-         <header class="h-16 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between px-6 md:px-8 transition-colors duration-300">
+         <header class="h-16 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between px-6 md:px-8 transition-colors duration-300 ${currentDesign === 'fluent' ? 'acrylic' : ''}">
              <!-- Search -->
              <div class="flex-1 max-w-lg">
                  <div class="relative">
@@ -202,6 +251,9 @@ const renderApp = () => {
                     <svg class="w-6 h-6 hidden dark:block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
                     <!-- Moon Icon (for Light Mode) -->
                     <svg class="w-6 h-6 block dark:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
+                 </button>
+                 <button id="design-toggle" class="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors" title="Change Design">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"></path></svg>
                  </button>
                  <button class="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors relative">
                      <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
@@ -248,6 +300,19 @@ const renderApp = () => {
             toggleTheme();
         });
     }
+
+    const designToggle = document.getElementById('design-toggle');
+    const mobDesignToggleHead = document.getElementById('mob-design-toggle-head');
+    const mobDesignToggle = document.getElementById('mob-design-toggle');
+
+    const handleDesignToggle = (e) => {
+        e.preventDefault();
+        toggleDesign();
+    };
+
+    if (designToggle) designToggle.addEventListener('click', handleDesignToggle);
+    if (mobDesignToggleHead) mobDesignToggleHead.addEventListener('click', handleDesignToggle);
+    if (mobDesignToggle) mobDesignToggle.addEventListener('click', handleDesignToggle);
 
     // Navigation logic
     document.getElementById('nav-calendar').addEventListener('click', () => setView('calendar'));
@@ -651,34 +716,31 @@ const renderCalendarView = async (container) => {
     const weeks = getServiceWeeksForMonth(currentMonth);
 
     container.innerHTML = `
-    <div class="space-y-8 animate-fade-in-down">
+    <div class="space-y-3 animate-fade-in-down">
             <!--Header Section-->
-            <div class="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
-                <div>
-                    <h2 class="text-3xl font-bold text-slate-800 dark:text-white tracking-tight">${format(currentMonth, 'MMMM yyyy')}</h2>
-                    <p class="text-slate-500 dark:text-slate-400 mt-1">Weekly facility maintenance and service overview</p>
-                </div>
+            <div class="flex justify-between items-center">
+                <h2 class="text-xl font-bold text-slate-800 dark:text-white tracking-tight">${format(currentMonth, 'MMMM yyyy')}</h2>
                 <!-- Month Nav -->
-                <div class="flex bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700">
-                     <button id="prev-month" class="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-orange-600 dark:hover:text-orange-400 hover:bg-orange-50 dark:hover:bg-slate-700 rounded-l-lg transition-colors border-r border-slate-100 dark:border-slate-700 flex items-center gap-2">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+                <div class="flex bg-white dark:bg-slate-800 rounded-md shadow-sm border border-slate-200 dark:border-slate-700">
+                     <button id="prev-month" class="px-2.5 py-1 text-xs font-medium text-slate-600 dark:text-slate-300 hover:text-orange-600 dark:hover:text-orange-400 hover:bg-orange-50 dark:hover:bg-slate-700 rounded-l-md transition-colors border-r border-slate-100 dark:border-slate-700 flex items-center gap-1">
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
                         Prev
                     </button>
-                    <button id="next-month" class="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-orange-600 dark:hover:text-orange-400 hover:bg-orange-50 dark:hover:bg-slate-700 rounded-r-lg transition-colors flex items-center gap-2">
+                    <button id="next-month" class="px-2.5 py-1 text-xs font-medium text-slate-600 dark:text-slate-300 hover:text-orange-600 dark:hover:text-orange-400 hover:bg-orange-50 dark:hover:bg-slate-700 rounded-r-md transition-colors flex items-center gap-1">
                         Next
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
                     </button>
                 </div>
             </div>
 
             <!--List Table-->
-            <div class="bg-white dark:bg-slate-800 shadow-sm rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+            <div class="bg-white dark:bg-slate-800 shadow-sm rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
                 <!-- Table Header -->
                 <div class="hidden sm:grid sm:grid-cols-12 gap-0 bg-slate-50 dark:bg-slate-700/50 border-b border-slate-200 dark:border-slate-700">
-                    <div class="col-span-3 px-6 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Week</div>
-                    <div class="col-span-2 px-6 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Type</div>
-                    <div class="col-span-5 px-6 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Details</div>
-                    <div class="col-span-2 px-6 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-right">Action</div>
+                    <div class="col-span-3 px-3 py-1.5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Week</div>
+                    <div class="col-span-2 px-3 py-1.5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Type</div>
+                    <div class="col-span-5 px-3 py-1.5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Details</div>
+                    <div class="col-span-2 px-3 py-1.5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-right">Action</div>
                 </div>
                 
                 <!-- Table Rows -->
@@ -687,26 +749,33 @@ const renderCalendarView = async (container) => {
         const sunday = addDays(tuesday, 5);
         const weekKey = format(tuesday, 'yyyy-MM-dd');
         return `
-                        <div class="group sm:grid sm:grid-cols-12 gap-0 items-center p-6 sm:p-0 hover:bg-slate-50/50 dark:hover:bg-slate-700/30 transition-colors" data-week="${weekKey}">
-                             <!-- Mobile Label -->
-                            <div class="sm:hidden text-xs font-bold text-slate-400 dark:text-slate-500 uppercase mb-2">Week ${index + 1}</div>
-                            
-                            <div class="col-span-3 sm:px-6 sm:py-6">
-                                <span class="block text-lg font-bold text-slate-800 dark:text-slate-200">${format(tuesday, 'MMM d')} – ${format(sunday, 'd')}</span>
-                                <span class="block text-xs text-slate-400 dark:text-slate-500 font-medium mt-1">Week ${format(tuesday, 'w')}</span>
+                        <div class="group sm:grid sm:grid-cols-12 gap-0 items-center p-2 sm:p-0 hover:bg-slate-50/50 dark:hover:bg-slate-700/30 transition-colors" data-week="${weekKey}">
+                             <!-- Mobile top row: Wk label + action button -->
+                            <div class="sm:hidden flex justify-between items-center mb-1">
+                                <span class="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase">Wk ${index + 1}</span>
+                                <div id="action-mobile-${weekKey}">
+                                    <button class="assign-btn inline-flex items-center justify-center px-2.5 py-1 text-[11px] font-bold text-white bg-orange-500 hover:bg-orange-600 rounded-md shadow-sm transition-all" data-week="${weekKey}">
+                                        <svg class="w-3 h-3 mr-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
+                                        Assign
+                                    </button>
+                                </div>
                             </div>
                             
-                            <div class="col-span-2 sm:px-6 sm:py-6 mb-4 sm:mb-0" id="type-${weekKey}">
-                                <span class="text-slate-300 dark:text-slate-600 text-sm">—</span>
+                            <div class="col-span-3 sm:px-3 sm:py-2">
+                                <span class="block text-xs sm:text-lg font-bold text-slate-800 dark:text-slate-200">${format(tuesday, 'MMM d')} – ${format(sunday, 'd')}</span>
                             </div>
                             
-                            <div class="col-span-5 sm:px-6 sm:py-6 mb-4 sm:mb-0 flex flex-col justify-center min-h-[3rem]" id="details-${weekKey}">
-                                <span class="text-slate-400 dark:text-slate-500 text-base italic">No service scheduled</span>
+                            <div class="col-span-2 sm:px-3 sm:py-2 mb-1 sm:mb-0" id="type-${weekKey}">
+                                <span class="text-slate-300 dark:text-slate-600 text-lg">—</span>
                             </div>
                             
-                            <div class="col-span-2 sm:px-6 sm:py-6 text-right" id="action-${weekKey}">
-                                <button class="assign-btn inline-flex items-center justify-center px-4 py-2 text-sm font-bold text-white bg-orange-500 hover:bg-orange-600 rounded-lg shadow-sm hover:shadow transition-all transform hover:-translate-y-0.5" data-week="${weekKey}">
-                                    <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
+                            <div class="col-span-5 sm:px-3 sm:py-2 mb-1 sm:mb-0 flex flex-col justify-center" id="details-${weekKey}">
+                                <span class="text-slate-400 dark:text-slate-500 text-lg italic">No service scheduled</span>
+                            </div>
+                            
+                            <div class="hidden sm:block col-span-2 sm:px-3 sm:py-2 text-right" id="action-${weekKey}">
+                                <button class="assign-btn inline-flex items-center justify-center px-2.5 py-1 text-[11px] font-bold text-white bg-orange-500 hover:bg-orange-600 rounded-md shadow-sm hover:shadow transition-all" data-week="${weekKey}">
+                                    <svg class="w-3 h-3 mr-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
                                     Assign
                                 </button>
                             </div>
@@ -716,32 +785,32 @@ const renderCalendarView = async (container) => {
             </div>
             
             <!--Summary Stats Cards-->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div class="bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col items-start gap-4 hover:shadow-md transition-shadow">
-            <div class="p-3 bg-orange-50 dark:bg-orange-900/20 rounded-full text-orange-500 dark:text-orange-400">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+    <div class="grid grid-cols-3 gap-2">
+        <div class="bg-white dark:bg-slate-800 px-2.5 py-2 rounded-md border border-slate-200 dark:border-slate-700 flex items-center gap-2">
+            <div class="p-1.5 bg-orange-50 dark:bg-orange-900/20 rounded-full text-orange-500 dark:text-orange-400 shrink-0">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
             </div>
-            <div>
-                <h4 class="text-lg font-bold text-slate-800 dark:text-white">Scheduled Tasks</h4>
-                <p class="text-sm text-slate-500 dark:text-slate-400" id="stat-scheduled">Loading...</p>
-            </div>
-        </div>
-        <div class="bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col items-start gap-4 hover:shadow-md transition-shadow">
-            <div class="p-3 bg-red-50 dark:bg-red-900/20 rounded-full text-red-500 dark:text-red-400">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-            </div>
-            <div>
-                <h4 class="text-lg font-bold text-slate-800 dark:text-white">Unassigned Weeks</h4>
-                <p class="text-sm text-slate-500 dark:text-slate-400" id="stat-unassigned">Loading...</p>
+            <div class="min-w-0">
+                <h4 class="text-xs md:text-sm font-bold text-slate-800 dark:text-white leading-tight">Scheduled</h4>
+                <p class="text-[10px] md:text-xs text-slate-500 dark:text-slate-400 truncate" id="stat-scheduled">Loading...</p>
             </div>
         </div>
-        <div class="bg-white dark:bg-slate-800 p-6 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col items-start gap-4 hover:shadow-md transition-shadow cursor-pointer hover:border-orange-200 dark:hover:border-orange-900">
-            <div class="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-full text-blue-500 dark:text-blue-400">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
+        <div class="bg-white dark:bg-slate-800 px-2.5 py-2 rounded-md border border-slate-200 dark:border-slate-700 flex items-center gap-2">
+            <div class="p-1.5 bg-red-50 dark:bg-red-900/20 rounded-full text-red-500 dark:text-red-400 shrink-0">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
             </div>
-            <div>
-                <h4 class="text-lg font-bold text-slate-800 dark:text-white">Export Overview</h4>
-                <p class="text-sm text-slate-500 dark:text-slate-400">Download the ${format(currentMonth, 'MMMM yyyy')} schedule.</p>
+            <div class="min-w-0">
+                <h4 class="text-xs md:text-sm font-bold text-slate-800 dark:text-white leading-tight">Unassigned</h4>
+                <p class="text-[10px] md:text-xs text-slate-500 dark:text-slate-400 truncate" id="stat-unassigned">Loading...</p>
+            </div>
+        </div>
+        <div id="export-card" class="bg-white dark:bg-slate-800 px-2.5 py-2 rounded-md border border-slate-200 dark:border-slate-700 flex items-center gap-2 cursor-pointer hover:border-orange-200 dark:hover:border-orange-900">
+            <div class="p-1.5 bg-blue-50 dark:bg-blue-900/20 rounded-full text-blue-500 dark:text-blue-400 shrink-0">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
+            </div>
+            <div class="min-w-0">
+                <h4 class="text-xs md:text-sm font-bold text-slate-800 dark:text-white leading-tight">Export</h4>
+                <p class="text-[10px] md:text-xs text-slate-500 dark:text-slate-400 truncate">CSV report</p>
             </div>
         </div>
     </div>
@@ -788,6 +857,49 @@ const renderCalendarView = async (container) => {
         }
     });
 
+    // Export handler
+    document.getElementById('export-card').addEventListener('click', async () => {
+        const rangeStart = weeks[0];
+        const rangeEnd = addDays(weeks[weeks.length - 1], 5);
+        try {
+            const activities = await getActivitiesForMonth(currentUser.uid, rangeStart, rangeEnd);
+            const csvRows = [
+                ['Date', 'Type', 'Congregation', 'Notes'].join(',')
+            ];
+
+            // Order by date as per weeks
+            const activityMap = {};
+            activities.forEach(a => {
+                const key = format(a.week_start.toDate(), 'yyyy-MM-dd');
+                activityMap[key] = a;
+            });
+
+            weeks.forEach(tuesday => {
+                const weekKey = format(tuesday, 'yyyy-MM-dd');
+                const a = activityMap[weekKey];
+                const dateStr = format(tuesday, 'yyyy-MM-dd');
+                if (a) {
+                    const row = [
+                        dateStr,
+                        `"${a.type || ''}"`,
+                        `"${a.congregationName || ''}"`,
+                        `"${(a.notes || '').replace(/"/g, '""')}"`
+                    ];
+                    csvRows.push(row.join(','));
+                } else {
+                    csvRows.push([dateStr, 'Unassigned', '', ''].join(','));
+                }
+            });
+
+            const csvContent = csvRows.join('\n');
+            const fileName = `Schedule_${format(currentMonth, 'yyyy-MM')}.csv`;
+            downloadCSV(fileName, csvContent);
+        } catch (err) {
+            console.error("Export failed:", err);
+            alert("Export failed: " + err.message);
+        }
+    });
+
     // Load existing activities
     const count = await loadMonthActivities(weeks);
     updateStats(count);
@@ -828,27 +940,21 @@ const loadMonthActivities = async (weeks) => {
 
             if (activity && typeEl && detailsEl && actionEl) {
                 const style = TYPE_STYLES[activity.type] || TYPE_STYLES['Congregation Visit'];
-                // New Pill Style
-                typeEl.innerHTML = `<span class="inline-block px-3 py-1 rounded-md text-xs font-bold uppercase tracking-wider ${style.bg} ${style.text}">${activity.type}</span>`;
+                typeEl.innerHTML = `<span class="inline-block px-2 py-px rounded text-xs font-bold uppercase tracking-wider ${style.bg} ${style.text}">${activity.type}</span>`;
 
                 let detailHtml = '';
                 if (activity.type === 'Congregation Visit' && activity.congregationName) {
-                    detailHtml = `<span class="block text-base font-bold text-slate-800 dark:text-slate-200">${activity.congregationName}</span>`;
+                    detailHtml = `<span class="block text-sm font-semibold text-slate-800 dark:text-slate-200">${activity.congregationName}</span>`;
                 } else {
-                    detailHtml = `<span class="block text-base font-bold text-slate-800 dark:text-slate-200">${activity.type}</span>`;
+                    detailHtml = `<span class="block text-sm font-semibold text-slate-800 dark:text-slate-200">${activity.type}</span>`;
                 }
 
                 if (activity.notes) {
-                    detailHtml += `<span class="block text-sm text-slate-500 dark:text-slate-400 mt-1">${activity.notes}</span>`;
+                    detailHtml += `<span class="block text-xs text-slate-500 dark:text-slate-400">${activity.notes}</span>`;
                 }
-                // Add assigned info visual
-                /* detailHtml += `<span class="block text-xs text-slate-400 dark:text-slate-500 mt-1">Assigned to: You</span>`; */
 
                 detailsEl.innerHTML = detailHtml;
 
-                // Fetch and show last-visited info for congregation visits
-                // Use getLastTwoVisitsBefore(tuesday) so the current scheduled week
-                // is excluded — we only compare visits that already happened.
                 if (activity.type === 'Congregation Visit' && activity.congregation_id) {
                     getLastTwoVisitsBefore(activity.congregation_id, tuesday).then(({ last, previous }) => {
                         if (!last || !detailsEl) return;
@@ -866,30 +972,31 @@ const loadMonthActivities = async (weeks) => {
                             const diffMo = Math.abs((daysSinceLast - prevIntervalDays) / 30.44).toFixed(1);
                             const trendColor = isOverdue ? 'text-red-500' : 'text-green-500';
                             const trendArrow = isOverdue ? '↑' : '↓';
-                            const trendLabel = isOverdue ? `${diffMo} mo overdue` : `${diffMo} mo ahead`;
-                            comparisonHtml = `<span class="font-semibold ${trendColor}">${trendArrow} ${trendLabel}</span> <span class="text-slate-400">(prev: ${prevIntervalMo} mo gap)</span>`;
+                            const trendLabel = isOverdue ? `${diffMo}mo over` : `${diffMo}mo ahead`;
+                            comparisonHtml = `<span class="font-semibold ${trendColor}">${trendArrow} ${trendLabel}</span>`;
                         }
 
                         const note = document.createElement('span');
-                        note.className = 'block text-xs text-orange-500 font-medium mt-1';
-                        note.innerHTML = `Last: ${lastDateStr} · ${moSinceLast} mo ago${comparisonHtml ? ' · ' + comparisonHtml : ''}`;
+                        note.className = 'block text-xs text-orange-500 font-medium';
+                        note.innerHTML = `Last: ${lastDateStr} · ${moSinceLast}mo${comparisonHtml ? ' · ' + comparisonHtml : ''}`;
                         detailsEl.appendChild(note);
                     }).catch(() => { });
                 }
 
-                // Serialize activity for edit button (strip Firestore Timestamp)
                 const actSerial = JSON.stringify({ id: activity.id, type: activity.type, congregation_id: activity.congregation_id || null, congregationName: activity.congregationName || null, notes: activity.notes || '' });
-                actionEl.innerHTML = `
-                    <div class="flex gap-3 justify-end items-center">
-                        <button class="edit-btn flex items-center gap-2 text-sm font-bold text-slate-600 dark:text-slate-300 hover:text-orange-600 dark:hover:text-orange-400 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 hover:border-orange-300 dark:hover:border-orange-500 px-4 py-2 rounded-lg transition-all shadow-sm" data-week="${weekKey}" data-activity='${actSerial.replace(/'/g, "&#39;")}'>
+                const actionButtons = `
+                    <div class="flex gap-1 justify-end items-center">
+                        <button class="edit-btn p-1 text-slate-500 dark:text-slate-400 hover:text-orange-600 dark:hover:text-orange-400 rounded transition-colors" title="Edit" data-week="${weekKey}" data-activity='${actSerial.replace(/'/g, "&#39;")}'>
                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
-                           Edit
                         </button>
-                        <button class="delete-btn flex items-center gap-2 text-sm font-bold text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 hover:border-red-300 dark:hover:border-red-500 px-4 py-2 rounded-lg transition-all shadow-sm" data-id="${activity.id}" data-type="calendar">
+                        <button class="delete-btn p-1 text-slate-500 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 rounded transition-colors" title="Remove" data-id="${activity.id}" data-type="calendar">
                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                           Remove
                         </button>
                     </div>`;
+                actionEl.innerHTML = actionButtons;
+                // Also update the mobile action area
+                const mobileActionEl = document.getElementById(`action-mobile-${weekKey}`);
+                if (mobileActionEl) mobileActionEl.innerHTML = actionButtons;
             }
         });
     } catch (err) {
@@ -1057,23 +1164,19 @@ const renderAssembliesView = async (container) => {
             </button>
         </div>
 
-        <!-- Assemblies Table -->
+        <!-- Assemblies List -->
         <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm">
-            <div class="overflow-x-auto">
-                <table class="w-full text-left">
-                    <thead>
-                        <tr class="bg-slate-50 dark:bg-slate-700/50 border-b border-slate-200 dark:border-slate-700">
-                            <th class="px-6 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Assembly Theme / Title</th>
-                            <th class="px-6 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Date</th>
-                            <th class="px-6 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Location/Circuit</th>
-                            <th class="px-6 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Status</th>
-                            <th class="px-6 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-right">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-slate-100 dark:divide-slate-700" id="assemblies-list">
-                        <tr><td colspan="5" class="px-6 py-8 text-center text-slate-500 italic">Loading assemblies...</td></tr>
-                    </tbody>
-                </table>
+            <!-- Header (Desktop Only) -->
+            <div class="hidden md:grid md:grid-cols-12 gap-0 bg-slate-50 dark:bg-slate-700/50 border-b border-slate-200 dark:border-slate-700">
+                <div class="col-span-4 px-6 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Assembly Theme / Title</div>
+                <div class="col-span-2 px-6 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Date</div>
+                <div class="col-span-3 px-6 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Location/Circuit</div>
+                <div class="col-span-1 px-6 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Status</div>
+                <div class="col-span-2 px-6 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-right">Actions</div>
+            </div>
+            
+            <div class="divide-y divide-slate-100 dark:divide-slate-700" id="assemblies-list">
+                <div class="px-6 py-8 text-center text-slate-500 italic">Loading assemblies...</div>
             </div>
         </div>
     </div>
@@ -1085,17 +1188,15 @@ const renderAssembliesView = async (container) => {
 
         if (assemblies.length === 0) {
             list.innerHTML = `
-                <tr>
-                    <td colspan="5" class="px-6 py-12 text-center">
-                        <div class="flex flex-col items-center justify-center">
-                            <div class="w-16 h-16 bg-slate-100 dark:bg-slate-700 rounded-full flex items-center justify-center mb-4">
-                                <svg class="w-8 h-8 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
-                            </div>
-                            <h3 class="text-lg font-bold text-slate-900 dark:text-white">No assemblies found</h3>
-                            <p class="text-slate-500 dark:text-slate-400 mt-1">Get started by creating a new assembly.</p>
+                <div class="px-6 py-12 text-center">
+                    <div class="flex flex-col items-center justify-center">
+                        <div class="w-16 h-16 bg-slate-100 dark:bg-slate-700 rounded-full flex items-center justify-center mb-4">
+                            <svg class="w-8 h-8 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
                         </div>
-                    </td>
-                </tr>
+                        <h3 class="text-lg font-bold text-slate-900 dark:text-white">No assemblies found</h3>
+                        <p class="text-slate-500 dark:text-slate-400 mt-1">Get started by creating a new assembly.</p>
+                    </div>
+                </div>
             `;
         } else {
             list.innerHTML = assemblies.map(a => {
@@ -1108,32 +1209,40 @@ const renderAssembliesView = async (container) => {
                 const statusClass = statusColors[a.status] || statusColors['Draft'];
 
                 return `
-                <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors group">
-                    <td class="px-6 py-4">
-                        <div class="font-bold text-slate-900 dark:text-white">${a.theme || 'Untitled Assembly'}</div>
-                        <div class="text-xs text-slate-500 mt-0.5">ID: #${a.id.slice(0, 6)}</div>
-                    </td>
-                    <td class="px-6 py-4 text-sm text-slate-600 dark:text-slate-400">${dateStr}</td>
-                    <td class="px-6 py-4 text-sm text-slate-600 dark:text-slate-400">${a.location || 'TBD'}</td>
-                    <td class="px-6 py-4">
-                        <button class="status-toggle-btn px-2.5 py-1 rounded-full text-xs font-bold transition-all hover:ring-2 hover:ring-offset-2 focus:outline-none ${statusClass}" data-id="${a.id}" data-status="${a.status || 'Draft'}">
+                <div class="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors group flex flex-col md:grid md:grid-cols-12 items-start md:items-center p-4 md:p-0">
+                    <div class="md:col-span-4 md:px-6 md:py-4 w-full mb-3 md:mb-0">
+                        <div class="font-bold text-slate-900 dark:text-white text-base md:text-lg">${a.theme || 'Untitled Assembly'}</div>
+                        <div class="flex items-center gap-2 mt-1">
+                            <span class="text-xs text-slate-500">ID: #${a.id.slice(0, 6)}</span>
+                            <span class="md:hidden text-xs text-slate-400 font-medium">·</span>
+                            <span class="md:hidden text-xs text-slate-400 font-medium">${dateStr}</span>
+                        </div>
+                    </div>
+                    <div class="hidden md:block md:col-span-2 md:px-6 md:py-4 text-sm text-slate-600 dark:text-slate-400">${dateStr}</div>
+                    <div class="md:col-span-3 md:px-6 md:py-4 text-sm text-slate-600 dark:text-slate-400 w-full mb-3 md:mb-0 flex items-center gap-2 md:block">
+                        <span class="material-symbols-outlined text-xs md:hidden">location_on</span>
+                        <span>${a.location || 'TBD'}</span>
+                    </div>
+                    <div class="md:col-span-1 md:px-6 md:py-4 w-full mb-4 md:mb-0">
+                        <button class="status-toggle-btn px-2.5 py-1 rounded-full text-[10px] md:text-xs font-bold transition-all hover:ring-2 hover:ring-offset-2 focus:outline-none ${statusClass}" data-id="${a.id}" data-status="${a.status || 'Draft'}">
                             ${a.status || 'Draft'}
                         </button>
-                    </td>
-                    <td class="px-6 py-4 text-right">
-                        <div class="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    </div>
+                    <div class="md:col-span-2 md:px-6 md:py-4 text-right w-full flex justify-between md:justify-end items-center border-t md:border-t-0 border-slate-100 dark:border-slate-700 pt-3 md:pt-0">
+                        <span class="md:hidden text-[10px] font-bold text-slate-400 uppercase tracking-widest">Actions</span>
+                        <div class="flex items-center gap-1.5 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                             <button class="view-assembly-btn p-2 hover:bg-slate-100 dark:hover:bg-slate-600 rounded-lg text-slate-500 dark:text-slate-400 transition-colors" data-id="${a.id}" title="View Details">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
                             </button>
-                            <button class="p-2 hover:bg-slate-100 dark:hover:bg-slate-600 rounded-lg text-slate-500 dark:text-slate-400 transition-colors" title="Edit">
+                            <button class="edit-assembly-btn p-2 hover:bg-slate-100 dark:hover:bg-slate-600 rounded-lg text-slate-500 dark:text-slate-400 transition-colors" data-id="${a.id}" title="Edit">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                             </button>
-                            <button class="p-2 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg text-slate-500 hover:text-red-600 dark:text-slate-400 dark:hover:text-red-400 transition-colors" title="Delete">
+                            <button class="delete-assembly-btn p-2 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg text-slate-500 hover:text-red-600 dark:text-slate-400 dark:hover:text-red-400 transition-colors" data-id="${a.id}" title="Delete">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                             </button>
                         </div>
-                    </td>
-                </tr>
+                    </div>
+                </div>
                 `;
             }).join('');
         }
@@ -1142,7 +1251,7 @@ const renderAssembliesView = async (container) => {
     }
 
     // Wire up Create button
-    document.getElementById('create-assembly-btn')?.addEventListener('click', () => renderAddAssemblyModal(container));
+    document.getElementById('create-assembly-btn')?.addEventListener('click', () => renderAssemblyModal(container));
 
     // Wire up View buttons
     document.querySelectorAll('.view-assembly-btn').forEach(btn => {
@@ -1176,6 +1285,41 @@ const renderAssembliesView = async (container) => {
                 console.error("Error updating status:", err);
                 alert("Failed to update status: " + err.message);
                 renderAssembliesView(container);
+            }
+        });
+    });
+
+    // Wire up Edit buttons
+    document.querySelectorAll('.edit-assembly-btn').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            const id = btn.dataset.id;
+            try {
+                // Fetch assembly data first
+                const assemblies = await getAssemblies();
+                const assembly = assemblies.find(a => a.id === id);
+                if (assembly) {
+                    renderAssemblyModal(container, assembly);
+                }
+            } catch (err) {
+                console.error("Error fetching assembly for edit:", err);
+            }
+        });
+    });
+
+    // Wire up Delete buttons
+    document.querySelectorAll('.delete-assembly-btn').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            const id = btn.dataset.id;
+            if (confirm('Are you sure you want to delete this assembly?')) {
+                try {
+                    await deleteAssembly(id);
+                    renderAssembliesView(container);
+                } catch (err) {
+                    console.error("Error deleting assembly:", err);
+                    alert("Failed to delete assembly: " + err.message);
+                }
             }
         });
     });
@@ -1335,7 +1479,7 @@ const renderAssemblyDetailsView = async (container) => {
         <!-- Content (Hidden initially) -->
         <div id="details-content" class="hidden space-y-8">
             <!-- Header -->
-            <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-slate-900 mobile-compact-p rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
                 <div class="flex items-center gap-6">
                     <button id="back-to-assemblies" class="p-2 -ml-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
@@ -1363,9 +1507,9 @@ const renderAssemblyDetailsView = async (container) => {
             </div>
 
             <!-- Stats Cards -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
                 <!-- Total Talks -->
-                <div class="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-start justify-between">
+                <div class="bg-white dark:bg-slate-900 mobile-compact-p rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between">
                     <div>
                         <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Total Talks</p>
                         <h3 id="stat-total-talks" class="text-3xl font-black text-slate-900 dark:text-white">0</h3>
@@ -1375,52 +1519,52 @@ const renderAssemblyDetailsView = async (container) => {
                     </div>
                 </div>
                 <!-- Confirmed Speakers -->
-                <div class="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-start justify-between">
+                <div class="bg-white dark:bg-slate-900 mobile-compact-p rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between">
                     <div>
                         <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Confirmed Speakers</p>
                         <h3 id="stat-confirmed-speakers" class="text-3xl font-black text-slate-900 dark:text-white">0</h3>
                     </div>
-                    <div class="w-12 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 rounded-xl flex items-center justify-center h-12">
-                        <span class="material-symbols-outlined">person_check</span>
+                    <div class="w-10 h-10 md:w-12 md:h-12 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 rounded-xl flex items-center justify-center shrink-0">
+                        <span class="material-symbols-outlined text-xl md:text-2xl">person_check</span>
                     </div>
                 </div>
                 <!-- Pending Assignments -->
-                <div class="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-start justify-between">
+                <div class="bg-white dark:bg-slate-900 mobile-compact-p rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between">
                     <div>
                         <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Pending Assignments</p>
                         <h3 id="stat-pending-assignments" class="text-3xl font-black text-slate-900 dark:text-white">0</h3>
                     </div>
-                    <div class="w-12 bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 rounded-xl flex items-center justify-center h-12">
-                        <span class="material-symbols-outlined">assignment_late</span>
+                    <div class="w-10 h-10 md:w-12 md:h-12 bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 rounded-xl flex items-center justify-center shrink-0">
+                        <span class="material-symbols-outlined text-xl md:text-2xl">assignment_late</span>
                     </div>
                 </div>
             </div>
 
             <!-- Schedule Management Table -->
             <div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col">
-                <div class="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-800/50">
+                <div class="px-3 py-3 md:px-6 md:py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-800/50">
                     <div class="flex flex-col">
-                        <h3 class="text-lg font-bold text-slate-900 dark:text-white">Schedule Management</h3>
-                        <p class="text-sm text-slate-500 dark:text-slate-400">Manage talks, speakers, and status</p>
+                        <h3 class="text-base md:text-lg font-bold text-slate-900 dark:text-white">Schedule</h3>
+                        <p class="text-[10px] md:text-sm text-slate-500 dark:text-slate-400">Manage talks and speakers</p>
                     </div>
-                    <div class="flex gap-3">
-                        <button id="add-talk-btn" class="px-4 py-2 bg-slate-900 dark:bg-blue-600 text-white rounded-lg text-sm font-bold flex items-center gap-2 hover:opacity-90 transition-all">
-                            <span class="material-symbols-outlined text-sm">add</span> Add New Talk
+                    <div class="flex gap-2">
+                        <button id="add-talk-btn" class="px-3 py-1.5 md:px-4 md:py-2 bg-slate-900 dark:bg-blue-600 text-white rounded-lg text-xs md:text-sm font-bold flex items-center gap-1.5 hover:opacity-90 transition-all">
+                            <span class="material-symbols-outlined text-sm">add</span> <span class="hidden sm:inline">Add Talk</span><span class="sm:hidden">Add</span>
                         </button>
                     </div>
                 </div>
                 <div class="overflow-x-auto">
                     <table class="w-full text-left">
                         <thead>
-                            <tr class="bg-slate-50/80 dark:bg-slate-800/80 text-slate-500 dark:text-slate-400 text-xs font-bold uppercase tracking-wider">
-                                <th class="px-6 py-4">No.</th>
-                                <th class="px-6 py-4">Start Time</th>
-                                <th class="px-6 py-4">Talk Title</th>
-                                <th class="px-6 py-4">Type</th>
-                                <th class="px-6 py-4">Duration</th>
-                                <th class="px-6 py-4">Speaker</th>
-                                <th class="px-6 py-4">Status</th>
-                                <th class="px-6 py-4 text-right">Actions</th>
+                            <tr class="bg-slate-50/80 dark:bg-slate-800/80 text-slate-500 dark:text-slate-400 text-[10px] md:text-xs font-bold uppercase tracking-wider">
+                                <th class="px-4 py-3 md:px-6 md:py-4">No.</th>
+                                <th class="px-4 py-3 md:px-6 md:py-4">Time</th>
+                                <th class="px-4 py-3 md:px-6 md:py-4">Talk</th>
+                                <th class="hidden md:table-cell px-6 py-4">Type</th>
+                                <th class="hidden md:table-cell px-6 py-4">Dur.</th>
+                                <th class="px-4 py-3 md:px-6 md:py-4">Speaker</th>
+                                <th class="hidden md:table-cell px-6 py-4">Status</th>
+                                <th class="px-4 py-3 md:px-6 md:py-4 text-right"></th>
                             </tr>
                         </thead>
                         <tbody id="talks-list" class="divide-y divide-slate-100 dark:divide-slate-800">
@@ -1466,35 +1610,44 @@ const renderAssemblyDetailsView = async (container) => {
 
                 return `
                 <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors group">
-                    <td class="px-6 py-5 text-sm font-medium text-slate-500">${index + 1}</td>
-                    <td class="px-6 py-5 text-sm font-semibold text-slate-900 dark:text-white">${t.startTime}</td>
-                    <td class="px-6 py-5">
-                        <p class="text-sm font-bold text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">${t.title}</p>
+                    <td class="px-4 py-3 md:px-6 md:py-5 text-sm font-medium text-slate-500">${index + 1}</td>
+                    <td class="px-4 py-3 md:px-6 md:py-5 text-sm font-semibold text-slate-900 dark:text-white">${t.startTime}</td>
+                    <td class="px-4 py-3 md:px-6 md:py-5">
+                        <div class="flex flex-col gap-1">
+                            <p class="text-sm font-bold text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">${t.title}</p>
+                            <div class="flex items-center gap-2 md:hidden">
+                                <span class="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-[10px] font-black text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600">${t.type || 'TK'}</span>
+                                <span class="text-[10px] text-slate-400 font-medium">${t.duration} min</span>
+                                <span class="inline-flex items-center gap-1 text-[10px] font-bold ${statusClass}">
+                                    <span class="w-1 h-1 rounded-full ${statusDot}"></span>
+                                    ${t.status || 'Pending'}
+                                </span>
+                            </div>
+                        </div>
                     </td>
-                    <td class="px-6 py-5">
+                    <td class="hidden md:table-cell px-6 py-5">
                         <span class="inline-flex items-center justify-center h-6 px-2 rounded bg-slate-100 dark:bg-slate-700 text-xs font-black text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600">${t.type || 'TK'}</span>
                     </td>
-                    <td class="px-6 py-5 text-sm text-slate-500 dark:text-slate-400">${t.duration} min</td>
-                    <td class="px-6 py-5">
+                    <td class="hidden md:table-cell px-6 py-5 text-sm text-slate-500 dark:text-slate-400">${t.duration} min</td>
+                    <td class="px-4 py-3 md:px-6 md:py-5">
                         ${t.speakerName ? `
                         <div class="flex items-center gap-2">
-                             <div class="w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-[10px] font-bold text-blue-600 dark:text-blue-400">${t.speakerName.substring(0, 2).toUpperCase()}</div>
-                             <span class="text-sm font-semibold text-slate-900 dark:text-white">${t.speakerName}</span>
-                             <button class="text-slate-300 hover:text-blue-500 transition-colors"><span class="material-symbols-outlined text-xs">edit</span></button>
+                             <div class="w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-[10px] font-bold text-blue-600 dark:text-blue-400 shrink-0">${t.speakerName.substring(0, 2).toUpperCase()}</div>
+                             <span class="text-sm font-semibold text-slate-900 dark:text-white truncate max-w-[80px] sm:max-w-none">${t.speakerName}</span>
                         </div>
                         ` : `
-                        <button class="text-xs font-bold text-blue-600 dark:text-blue-400 px-3 py-1 bg-blue-50 dark:bg-blue-900/20 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-all flex items-center gap-1">
-                            <span class="material-symbols-outlined text-sm">person_add</span> Assign
+                        <button class="text-[10px] sm:text-xs font-bold text-blue-600 dark:text-blue-400 px-2 py-1 bg-blue-50 dark:bg-blue-900/20 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-all flex items-center gap-1">
+                            <span class="material-symbols-outlined text-xs">person_add</span> <span class="hidden sm:inline">Assign</span><span class="sm:hidden">Add</span>
                         </button>
                         `}
                     </td>
-                    <td class="px-6 py-5">
+                    <td class="hidden md:table-cell px-6 py-5">
                          <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold ${statusClass}">
                             <span class="w-1.5 h-1.5 rounded-full ${statusDot}"></span>
                             ${t.status || 'Pending'}
                         </span>
                     </td>
-                    <td class="px-6 py-5 text-right">
+                    <td class="px-4 py-3 md:px-6 md:py-5 text-right">
                         <button class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"><span class="material-symbols-outlined">more_horiz</span></button>
                     </td>
                 </tr>
@@ -1609,13 +1762,22 @@ const renderAddSpeakerModal = async (container) => {
     });
 };
 
-const renderAddAssemblyModal = async (container) => {
+const renderAssemblyModal = async (container, assemblyToEdit = null) => {
+    const isEdit = !!assemblyToEdit;
     const modal = document.createElement('div');
     modal.className = "fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-[2px] animate-fade-in";
+
+    // Format date for input field
+    let dateStr = '';
+    if (isEdit && assemblyToEdit.date) {
+        const d = assemblyToEdit.date instanceof Date ? assemblyToEdit.date : assemblyToEdit.date.toDate?.() || new Date(assemblyToEdit.date);
+        dateStr = d.toISOString().split('T')[0];
+    }
+
     modal.innerHTML = `
     <div class="bg-white dark:bg-slate-900 w-full max-w-[520px] rounded-xl shadow-2xl border border-slate-200 dark:border-slate-800 flex flex-col overflow-hidden animate-scale-in">
         <div class="flex items-center justify-between px-6 py-5 border-b border-slate-100 dark:border-slate-800">
-            <h3 class="text-xl font-bold text-slate-900 dark:text-white">Create New Assembly</h3>
+            <h3 class="text-xl font-bold text-slate-900 dark:text-white">${isEdit ? 'Edit Assembly' : 'Create New Assembly'}</h3>
             <button id="close-modal-btn" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
             </button>
@@ -1623,31 +1785,31 @@ const renderAddAssemblyModal = async (container) => {
         <div class="p-6 space-y-5">
             <div class="space-y-1.5">
                 <label class="text-sm font-semibold text-slate-700 dark:text-slate-300">Theme / Title</label>
-                <input id="asm-theme" class="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-orange-500 outline-none" placeholder="e.g. Circuit Assembly 2026" type="text"/>
+                <input id="asm-theme" class="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-orange-500 outline-none" placeholder="e.g. Circuit Assembly 2026" type="text" value="${isEdit ? (assemblyToEdit.theme || '') : ''}"/>
             </div>
             <div class="grid grid-cols-2 gap-4">
                 <div class="space-y-1.5">
                     <label class="text-sm font-semibold text-slate-700 dark:text-slate-300">Date</label>
-                    <input id="asm-date" class="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-orange-500 outline-none" type="date"/>
+                    <input id="asm-date" class="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-orange-500 outline-none" type="date" value="${dateStr}"/>
                 </div>
                 <div class="space-y-1.5">
                     <label class="text-sm font-semibold text-slate-700 dark:text-slate-300">Location</label>
-                    <input id="asm-location" class="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-orange-500 outline-none" placeholder="e.g. Assembly Hall" type="text"/>
+                    <input id="asm-location" class="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-orange-500 outline-none" placeholder="e.g. Assembly Hall" type="text" value="${isEdit ? (assemblyToEdit.location || '') : ''}"/>
                 </div>
             </div>
             <div class="space-y-1.5">
                 <label class="text-sm font-semibold text-slate-700 dark:text-slate-300">Status</label>
                 <select id="asm-status" class="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-orange-500 outline-none">
-                    <option value="Upcoming">Upcoming</option>
-                    <option value="Draft">Draft</option>
-                    <option value="Completed">Completed</option>
+                    <option value="Draft" ${isEdit && assemblyToEdit.status === 'Draft' ? 'selected' : ''}>Draft</option>
+                    <option value="Upcoming" ${(!isEdit || assemblyToEdit.status === 'Upcoming') ? 'selected' : ''}>Upcoming</option>
+                    <option value="Completed" ${isEdit && assemblyToEdit.status === 'Completed' ? 'selected' : ''}>Completed</option>
                 </select>
             </div>
         </div>
         <div class="flex items-center justify-end gap-3 px-6 py-6 bg-slate-50 dark:bg-slate-800/30 border-t border-slate-100 dark:border-slate-800">
             <button id="cancel-modal-btn" class="px-5 py-2.5 rounded-lg text-sm font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">Cancel</button>
             <button id="save-assembly-btn" class="px-6 py-2.5 rounded-lg text-sm font-bold bg-orange-600 text-white hover:bg-orange-700 shadow-md shadow-orange-600/20 transition-all flex items-center gap-2">
-                <span>Create Assembly</span>
+                <span>${isEdit ? 'Save Changes' : 'Create Assembly'}</span>
             </button>
         </div>
     </div>
@@ -1668,18 +1830,29 @@ const renderAddAssemblyModal = async (container) => {
         try {
             btn.textContent = 'Saving...';
             btn.disabled = true;
-            await addAssembly({
+
+            const assemblyData = {
                 theme,
                 date: new Date(dateVal),
                 location: document.getElementById('asm-location').value,
                 status: document.getElementById('asm-status').value,
-                progress: 0 // Default 0 progress
-            });
+            };
+
+            if (isEdit) {
+                await updateAssembly(assemblyToEdit.id, assemblyData);
+            } else {
+                await addAssembly({
+                    ...assemblyData,
+                    progress: 0
+                });
+            }
+
             closeModal();
             renderAssembliesView(container); // Refresh
         } catch (e) {
-            alert('Error saving: ' + e.message);
-            btn.textContent = 'Create Assembly';
+            console.error("Error saving assembly:", e);
+            alert("Error saving assembly: " + e.message);
+            btn.textContent = isEdit ? 'Save Changes' : 'Create Assembly';
             btn.disabled = false;
         }
     });
