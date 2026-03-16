@@ -18,96 +18,75 @@
     }
 }
 
-/* Fluent Design Tokens */
+/* Foundation Design Tokens (Refined) */
 :root {
-    --fluent-bg: #f3f3f3;
-    --fluent-surface: rgba(255, 255, 255, 0.7);
-    --fluent-border: rgba(0, 0, 0, 0.05);
-    --fluent-card-bg: rgba(255, 255, 255, 0.5);
+    --foundation-bg: #f8fafc;
+    --foundation-header-bg: #ffffff;
+    --foundation-sidebar-bg: #edf2f7;
+    --foundation-surface: #ffffff;
+    --foundation-border: #e2e8f0;
+    --foundation-accent: #006096;
+    --foundation-text-main: #1a202c;
+    --foundation-text-muted: #718096;
 }
 
 .dark {
-    --fluent-bg: #202020;
-    --fluent-surface: rgba(32, 32, 32, 0.7);
-    --fluent-border: rgba(255, 255, 255, 0.08);
-    --fluent-card-bg: rgba(45, 45, 45, 0.4);
+    --foundation-bg: #0f172a;
+    --foundation-header-bg: #1e293b;
+    --foundation-sidebar-bg: #1e293b;
+    --foundation-surface: #1e293b;
+    --foundation-border: #334155;
+    --foundation-accent: #38bdf8;
+    --foundation-text-main: #f1f5f9;
+    --foundation-text-muted: #94a3b8;
 }
 
-/* Base Fluent Design System */
-.fluent-design {
-    font-family: 'Segoe UI Variable', 'Segoe UI', 'Inter', sans-serif;
-    background-color: var(--fluent-bg) !important;
+/* Base Foundation Design System */
+.foundation-design {
+    font-family: 'Inter', 'Segoe UI', -apple-system, sans-serif;
+    background-color: var(--foundation-bg) !important;
+    color: var(--foundation-text-main);
 }
 
-.fluent-design .mica {
-    background: var(--fluent-bg);
-    background-image:
-        radial-gradient(at 0% 0%, rgba(255, 255, 255, 0.05) 0, transparent 50%),
-        radial-gradient(at 100% 0%, rgba(255, 255, 255, 0.02) 0, transparent 50%);
-}
-
-.fluent-design .acrylic {
-    backdrop-filter: blur(30px) saturate(150%);
-    -webkit-backdrop-filter: blur(30px) saturate(150%);
-    background-color: var(--fluent-surface);
-    border: 1px solid var(--fluent-border);
-}
-
-.fluent-design .fluent-card {
-    backdrop-filter: blur(10px);
-    background-color: var(--fluent-card-bg);
-    border: 1px solid var(--fluent-border);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
-    border-radius: 8px;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.fluent-design .fluent-card:hover {
-    background-color: rgba(255, 255, 255, 0.8);
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.08);
-    transform: translateY(-2px);
-}
-
-.dark.fluent-design .fluent-card:hover {
-    background-color: rgba(60, 60, 60, 0.6);
-}
-
-.fluent-design .fluent-button {
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid var(--fluent-border);
-    border-bottom: 2px solid rgba(0, 0, 0, 0.2);
+.foundation-design .foundation-card {
+    background-color: var(--foundation-surface);
+    border: 1px solid var(--foundation-border);
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
     border-radius: 4px;
-    transition: all 0.1s;
 }
 
-.fluent-design .fluent-button:active {
-    transform: scale(0.98);
-    background: rgba(255, 255, 255, 0.05);
+/* Specific Stats Cards with top colored borders */
+.foundation-design .stats-card-blue {
+    border-top: 4px solid #006096;
 }
 
-/* Mobile Compaction Utilities */
-@layer utilities {
-    .mobile-compact-p {
-        @apply p-4 md:p-6 lg:p-8;
-    }
+.foundation-design .stats-card-orange {
+    border-top: 4px solid #ed8936;
+}
 
-    .mobile-compact-p-x {
-        @apply px-4 md:px-6 lg:px-8;
-    }
+.foundation-design .stats-card-green {
+    border-top: 4px solid #38a169;
+}
 
-    .mobile-compact-p-y {
-        @apply py-4 md:py-6 lg:py-8;
-    }
+.foundation-design .foundation-button {
+    background-color: var(--foundation-accent);
+    color: #ffffff;
+    border-radius: 4px;
+    padding: 0.5rem 1rem;
+    font-weight: 600;
+    transition: all 0.2s;
+}
 
-    .mobile-text-sm {
-        @apply text-xl md:text-2xl lg:text-3xl font-bold;
-    }
+.foundation-design .foundation-button:hover {
+    filter: brightness(1.1);
+}
 
-    .mobile-hide {
-        @apply hidden md:table-cell;
-    }
+.foundation-design .foundation-sidebar {
+    background-color: var(--foundation-sidebar-bg);
+    border-right: 1px solid var(--foundation-border);
+}
 
-    .mobile-only-card {
-        @apply block md:hidden mb-4 p-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm;
-    }
+.foundation-design .foundation-header {
+    background-color: var(--foundation-header-bg);
+    border-bottom: 1px solid var(--foundation-border);
 }
