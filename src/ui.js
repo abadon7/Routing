@@ -6,6 +6,7 @@ import { addDays, format, parseISO, startOfMonth, endOfMonth, getDay, addMonths,
 let currentUser = null;
 let currentView = 'calendar';
 let currentMonth = new Date();
+let calendarViewRange = 1;
 let activeAssemblyId = null;
 let congSortOrder = 'name-asc'; // 'name-asc' | 'name-desc' | 'visit-oldest' | 'visit-newest'
 let currentDesign = localStorage.design || 'default';
@@ -100,25 +101,19 @@ const toggleTheme = () => {
 
 // ─── DESIGN LOGIC ─────────────────────────────────────────
 const initDesign = () => {
-    if (currentDesign === 'fluent') {
-        document.documentElement.classList.add('fluent-design');
-    } else {
-        document.documentElement.classList.remove('fluent-design');
+    document.documentElement.classList.remove('foundation-design');
+    if (currentDesign === 'foundation') {
+        document.documentElement.classList.add('foundation-design');
     }
 };
 
 const toggleDesign = () => {
     console.log('Toggling design...');
-    if (currentDesign === 'default') {
-        currentDesign = 'fluent';
-        document.documentElement.classList.add('fluent-design');
-    } else {
-        currentDesign = 'default';
-        document.documentElement.classList.remove('fluent-design');
-    }
+    currentDesign = (currentDesign === 'default') ? 'foundation' : 'default';
+
     localStorage.design = currentDesign;
     console.log('Current design:', currentDesign);
-    renderApp(); // Rerender to apply structural changes if any
+    renderApp();
 };
 
 // ─── APP SHELL ───────────────────────────────────────────
@@ -128,15 +123,15 @@ const renderApp = () => {
 
     const appContainer = document.querySelector('#app');
     appContainer.innerHTML = `
-    <div class="flex h-screen bg-slate-50 dark:bg-slate-900 font-sans overflow-hidden transition-colors duration-300 ${currentDesign === 'fluent' ? 'mica' : ''}">
+    <div class="flex h-screen bg-slate-50 dark:bg-slate-900 font-sans overflow-hidden transition-colors duration-300">
       <!-- Sidebar -->
-      <aside class="w-64 bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 flex flex-col hidden md:flex z-20 transition-colors duration-300 ${currentDesign === 'fluent' ? 'acrylic' : ''}">
+      <aside class="w-64 bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 flex flex-col hidden md:flex z-20 transition-colors duration-300 ${currentDesign === 'foundation' ? 'foundation-sidebar' : ''}">
         <div class="h-16 flex items-center px-6 border-b border-slate-100 dark:border-slate-700">
             <div class="flex items-center gap-3">
                 <div class="h-8 w-8 bg-orange-500 rounded-lg flex items-center justify-center shadow-sm text-white">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
                 </div>
-                <h1 class="text-lg font-bold text-slate-800 dark:text-white tracking-tight">ServiceSync</h1>
+                <h1 class="text-lg font-bold text-slate-800 dark:text-white tracking-tight">Routing</h1>
             </div>
         </div>
         
@@ -182,12 +177,12 @@ const renderApp = () => {
       </aside>
 
       <!-- Mobile Header -->
-       <div class="md:hidden fixed top-0 left-0 right-0 h-14 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between px-3 z-30 transition-colors duration-300 ${currentDesign === 'fluent' ? 'acrylic' : ''}">
+       <div class="md:hidden fixed top-0 left-0 right-0 h-14 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between px-3 z-30 transition-colors duration-300 ${currentDesign === 'foundation' ? 'foundation-header' : ''}">
             <div class="flex items-center gap-2">
                 <div class="h-7 w-7 bg-orange-500 rounded-md flex items-center justify-center text-white shadow-sm">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
                 </div>
-                <span class="font-bold text-slate-800 dark:text-white text-base">ServiceSync</span>
+                <span class="font-bold text-slate-800 dark:text-white text-base">Routing</span>
             </div>
             <div class="flex items-center gap-1">
                 <button id="mob-design-toggle-head" class="p-1.5 text-slate-500 dark:text-slate-400">
@@ -222,7 +217,7 @@ const renderApp = () => {
                     <span class="hidden dark:inline">Light Mode</span>
                 </button>
                 <button id="mob-design-toggle" class="w-full text-left px-3 py-2.5 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-3">
-                    <span>Change Design</span>
+                    <span>Design: ${currentDesign.charAt(0).toUpperCase() + currentDesign.slice(1)}</span>
                 </button>
               </div>
               <div class="mt-auto border-t border-slate-100 dark:border-slate-700 pt-2">
@@ -234,7 +229,7 @@ const renderApp = () => {
       <!-- Main Content -->
       <main class="flex-1 flex flex-col min-w-0 overflow-hidden relative transition-colors duration-300">
          <!-- Top Bar -->
-         <header class="h-16 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between px-6 md:px-8 transition-colors duration-300 ${currentDesign === 'fluent' ? 'acrylic' : ''}">
+         <header class="h-16 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between px-6 md:px-8 transition-colors duration-300 ${currentDesign === 'foundation' ? 'foundation-header' : ''}">
              <!-- Search -->
              <div class="flex-1 max-w-lg">
                  <div class="relative">
@@ -477,15 +472,15 @@ const renderSearchResults = async (container, term) => {
 const renderCongregationsView = async (container) => {
     container.innerHTML = `
     <div class="space-y-8 animate-fade-in-down">
-        <div class="bg-white dark:bg-slate-800 shadow-sm rounded-xl p-8 border border-slate-200 dark:border-slate-700">
+        <div class="bg-white dark:bg-slate-800 shadow-sm rounded-xl p-8 border border-slate-200 dark:border-slate-700 ${currentDesign === 'foundation' ? 'foundation-card' : ''}">
             <h2 class="text-2xl font-bold text-slate-800 dark:text-white mb-6">Add Congregation</h2>
             <form id="add-cong-form" class="flex flex-col sm:flex-row gap-4">
                 <input type="text" name="name" placeholder="Congregation Name" class="flex-grow shadow-sm border-slate-300 dark:border-slate-600 rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all outline-none bg-white dark:bg-slate-700 text-slate-900 dark:text-white placeholder-slate-400" required>
                     <input type="text" name="circuit" placeholder="Circuit (Optional)" class="sm:w-1/3 shadow-sm border-slate-300 dark:border-slate-600 rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all outline-none bg-white dark:bg-slate-700 text-slate-900 dark:text-white placeholder-slate-400">
-                        <button type="submit" class="bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-8 rounded-lg shadow-sm hover:shadow-md transition-all transform hover:-translate-y-0.5">Add Congregation</button>
+                        <button type="submit" class="bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-8 rounded-lg shadow-sm hover:shadow-md transition-all transform hover:-translate-y-0.5 ${currentDesign === 'foundation' ? 'foundation-button' : ''}">Add Congregation</button>
                     </form>
                 </div>
-                <div class="bg-white dark:bg-slate-800 shadow-sm rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700">
+                <div class="bg-white dark:bg-slate-800 shadow-sm rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 ${currentDesign === 'foundation' ? 'foundation-card' : ''}">
                     <div class="px-8 py-6 border-b border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-700/50 flex justify-between items-center">
                         <h2 class="text-lg font-bold text-slate-700 dark:text-slate-200">Congregations Directory</h2>
                         <div class="flex items-center gap-2">
@@ -688,9 +683,9 @@ const loadCongregations = async () => {
  * Compute all Tuesday-start service weeks that overlap with a given month.
  * Returns an array of Date objects, each being a Tuesday.
  */
-const getServiceWeeksForMonth = (monthDate) => {
+const getServiceWeeks = (monthDate, rangeMonths = 1) => {
     const mStart = startOfMonth(monthDate);
-    const mEnd = endOfMonth(monthDate);
+    const mEnd = endOfMonth(addMonths(monthDate, rangeMonths - 1));
     const weeks = [];
 
     // Find the first Tuesday on or before the start of the month
@@ -713,34 +708,40 @@ const getServiceWeeksForMonth = (monthDate) => {
 };
 
 const renderCalendarView = async (container) => {
-    const weeks = getServiceWeeksForMonth(currentMonth);
+    const weeks = getServiceWeeks(currentMonth, calendarViewRange);
 
     container.innerHTML = `
     <div class="space-y-3 animate-fade-in-down">
             <!--Header Section-->
-            <div class="flex justify-between items-center">
-                <h2 class="text-xl font-bold text-slate-800 dark:text-white tracking-tight">${format(currentMonth, 'MMMM yyyy')}</h2>
-                <!-- Month Nav -->
-                <div class="flex bg-white dark:bg-slate-800 rounded-md shadow-sm border border-slate-200 dark:border-slate-700">
-                     <button id="prev-month" class="px-2.5 py-1 text-xs font-medium text-slate-600 dark:text-slate-300 hover:text-orange-600 dark:hover:text-orange-400 hover:bg-orange-50 dark:hover:bg-slate-700 rounded-l-md transition-colors border-r border-slate-100 dark:border-slate-700 flex items-center gap-1">
-                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
-                        Prev
-                    </button>
-                    <button id="next-month" class="px-2.5 py-1 text-xs font-medium text-slate-600 dark:text-slate-300 hover:text-orange-600 dark:hover:text-orange-400 hover:bg-orange-50 dark:hover:bg-slate-700 rounded-r-md transition-colors flex items-center gap-1">
-                        Next
-                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-                    </button>
+            <div class="flex justify-between items-center sm:flex-row flex-col gap-3">
+                <h2 class="text-xl font-bold text-slate-800 dark:text-white tracking-tight">${format(currentMonth, 'MMMM yyyy')} ${calendarViewRange > 1 ? ` - ${format(addMonths(currentMonth, calendarViewRange - 1), 'MMMM yyyy')}` : ''}</h2>
+                <div class="flex items-center gap-3">
+                    <select id="calendar-range-select" class="text-xs font-semibold text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-orange-500 cursor-pointer shadow-sm">
+                        <option value="1" ${calendarViewRange === 1 ? 'selected' : ''}>1 Month</option>
+                        <option value="3" ${calendarViewRange === 3 ? 'selected' : ''}>3 Months</option>
+                        <option value="6" ${calendarViewRange === 6 ? 'selected' : ''}>6 Months</option>
+                    </select>
+                    <!-- Month Nav -->
+                    <div class="flex bg-white dark:bg-slate-800 rounded-md shadow-sm border border-slate-200 dark:border-slate-700">
+                         <button id="prev-month" class="px-2.5 py-1 text-xs font-medium text-slate-600 dark:text-slate-300 hover:text-orange-600 dark:hover:text-orange-400 hover:bg-orange-50 dark:hover:bg-slate-700 rounded-l-md transition-colors border-r border-slate-100 dark:border-slate-700 flex items-center gap-1">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+                            Prev
+                        </button>
+                        <button id="next-month" class="px-2.5 py-1 text-xs font-medium text-slate-600 dark:text-slate-300 hover:text-orange-600 dark:hover:text-orange-400 hover:bg-orange-50 dark:hover:bg-slate-700 rounded-r-md transition-colors flex items-center gap-1">
+                            Next
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                        </button>
+                    </div>
                 </div>
             </div>
 
             <!--List Table-->
-            <div class="bg-white dark:bg-slate-800 shadow-sm rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
+            <div class="bg-white dark:bg-slate-800 shadow-sm rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden ${currentDesign === 'foundation' ? 'foundation-card' : ''}">
                 <!-- Table Header -->
-                <div class="hidden sm:grid sm:grid-cols-12 gap-0 bg-slate-50 dark:bg-slate-700/50 border-b border-slate-200 dark:border-slate-700">
-                    <div class="col-span-3 px-3 py-1.5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Week</div>
-                    <div class="col-span-2 px-3 py-1.5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Type</div>
-                    <div class="col-span-5 px-3 py-1.5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Details</div>
-                    <div class="col-span-2 px-3 py-1.5 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-right">Action</div>
+                <div class="hidden sm:grid sm:grid-cols-12 gap-0 bg-slate-50/80 dark:bg-slate-700/30 border-b border-slate-200 dark:border-slate-700 sticky top-0 z-10 backdrop-blur-sm">
+                    <div class="col-span-3 px-4 py-2.5 text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Service Week</div>
+                    <div class="col-span-7 px-4 py-2.5 text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Activity & Details</div>
+                    <div class="col-span-2 px-4 py-2.5 text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-right">Action</div>
                 </div>
                 
                 <!-- Table Rows -->
@@ -748,34 +749,47 @@ const renderCalendarView = async (container) => {
                     ${weeks.map((tuesday, index) => {
         const sunday = addDays(tuesday, 5);
         const weekKey = format(tuesday, 'yyyy-MM-dd');
+
+        // Check if this is the current week (today falls between tuesday and sunday)
+        const todayStr = format(new Date(), 'yyyy-MM-dd');
+        const sunStr = format(sunday, 'yyyy-MM-dd');
+        const isCurrentWeek = todayStr >= weekKey && todayStr <= sunStr;
+
+        const rowBg = isCurrentWeek
+            ? "bg-blue-50/40 dark:bg-blue-900/10 border-l-4 border-blue-500"
+            : "border-l-4 border-transparent hover:bg-slate-50/50 dark:hover:bg-slate-700/30";
+
+        const textHighlight = isCurrentWeek
+            ? "text-blue-600 dark:text-blue-400"
+            : "text-slate-800 dark:text-slate-200 group-hover:text-orange-600 dark:group-hover:text-orange-400";
+
         return `
-                        <div class="group sm:grid sm:grid-cols-12 gap-0 items-center p-2 sm:p-0 hover:bg-slate-50/50 dark:hover:bg-slate-700/30 transition-colors" data-week="${weekKey}">
-                             <!-- Mobile top row: Wk label + action button -->
-                            <div class="sm:hidden flex justify-between items-center mb-1">
-                                <span class="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase">Wk ${index + 1}</span>
-                                <div id="action-mobile-${weekKey}">
-                                    <button class="assign-btn inline-flex items-center justify-center px-2.5 py-1 text-[11px] font-bold text-white bg-orange-500 hover:bg-orange-600 rounded-md shadow-sm transition-all" data-week="${weekKey}">
-                                        <svg class="w-3 h-3 mr-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
-                                        Assign
+                        <div class="group sm:grid sm:grid-cols-12 gap-0 items-center p-2 sm:p-0 transition-colors calendar-week-row dropzone flex-col ${rowBg}" data-week="${weekKey}">
+                            <!-- Mobile Header: Date + Actions -->
+                            <div class="sm:hidden flex justify-between items-start mb-2 ${isCurrentWeek ? 'pt-2 px-2' : ''}">
+                                <span class="block text-sm font-bold ${textHighlight}">${format(tuesday, 'MMM d')} – ${format(sunday, 'd')} ${isCurrentWeek ? '<span class="text-[10px] uppercase font-black tracking-wider ml-1 px-1.5 py-0.5 rounded-sm bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300">This Week</span>' : ''}</span>
+                                <div id="action-mobile-${weekKey}" class="flex gap-1">
+                                    <!-- Simple Assign button if nothing scheduled -->
+                                    <button class="assign-btn inline-flex items-center justify-center p-1.5 text-slate-400 hover:text-orange-500 rounded-lg transition-colors" data-week="${weekKey}">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
                                     </button>
                                 </div>
                             </div>
                             
-                            <div class="col-span-3 sm:px-3 sm:py-2">
-                                <span class="block text-xs sm:text-lg font-bold text-slate-800 dark:text-slate-200">${format(tuesday, 'MMM d')} – ${format(sunday, 'd')}</span>
+                            <div class="hidden sm:block col-span-3 sm:px-4 sm:py-4">
+                                <div class="flex flex-col">
+                                    <span class="block text-xs sm:text-lg font-bold transition-colors ${textHighlight}">${format(tuesday, 'MMM d')} – ${format(sunday, 'd')}</span>
+                                    ${isCurrentWeek ? '<span class="text-[10px] font-black uppercase text-blue-500 tracking-widest mt-0.5">Current Week</span>' : ''}
+                                </div>
                             </div>
                             
-                            <div class="col-span-2 sm:px-3 sm:py-2 mb-1 sm:mb-0" id="type-${weekKey}">
-                                <span class="text-slate-300 dark:text-slate-600 text-lg">—</span>
+                            <div class="col-span-7 px-0 sm:px-4 py-1 sm:py-4 mb-1 sm:mb-0 flex flex-col justify-center" id="activity-${weekKey}">
+                                <span class="text-slate-300 dark:text-slate-600 text-sm italic font-medium">Empty week</span>
                             </div>
                             
-                            <div class="col-span-5 sm:px-3 sm:py-2 mb-1 sm:mb-0 flex flex-col justify-center" id="details-${weekKey}">
-                                <span class="text-slate-400 dark:text-slate-500 text-lg italic">No service scheduled</span>
-                            </div>
-                            
-                            <div class="hidden sm:block col-span-2 sm:px-3 sm:py-2 text-right" id="action-${weekKey}">
-                                <button class="assign-btn inline-flex items-center justify-center px-2.5 py-1 text-[11px] font-bold text-white bg-orange-500 hover:bg-orange-600 rounded-md shadow-sm hover:shadow transition-all" data-week="${weekKey}">
-                                    <svg class="w-3 h-3 mr-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
+                            <div class="hidden sm:block col-span-2 sm:px-4 sm:py-4 text-right" id="action-${weekKey}">
+                                <button class="assign-btn inline-flex items-center justify-center px-3 py-1.5 text-[11px] font-bold text-white bg-slate-800 dark:bg-slate-700 hover:bg-orange-600 dark:hover:bg-orange-500 rounded-md shadow-sm transition-all ${currentDesign === 'foundation' ? 'foundation-button' : ''}" data-week="${weekKey}">
+                                    <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
                                     Assign
                                 </button>
                             </div>
@@ -785,32 +799,32 @@ const renderCalendarView = async (container) => {
             </div>
             
             <!--Summary Stats Cards-->
-    <div class="grid grid-cols-3 gap-2">
-        <div class="bg-white dark:bg-slate-800 px-2.5 py-2 rounded-md border border-slate-200 dark:border-slate-700 flex items-center gap-2">
-            <div class="p-1.5 bg-orange-50 dark:bg-orange-900/20 rounded-full text-orange-500 dark:text-orange-400 shrink-0">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 flex items-center gap-4 shadow-sm ${currentDesign === 'foundation' ? 'foundation-card stats-card-blue' : ''}">
+            <div class="p-3 bg-orange-50 dark:bg-orange-900/20 rounded-xl text-orange-600 dark:text-orange-400 shrink-0">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
             </div>
             <div class="min-w-0">
-                <h4 class="text-xs md:text-sm font-bold text-slate-800 dark:text-white leading-tight">Scheduled</h4>
-                <p class="text-[10px] md:text-xs text-slate-500 dark:text-slate-400 truncate" id="stat-scheduled">Loading...</p>
+                <h4 class="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1">Tasks Scheduled</h4>
+                <p class="text-2xl font-black text-slate-800 dark:text-white leading-none tracking-tight" id="stat-scheduled">Loading...</p>
             </div>
         </div>
-        <div class="bg-white dark:bg-slate-800 px-2.5 py-2 rounded-md border border-slate-200 dark:border-slate-700 flex items-center gap-2">
-            <div class="p-1.5 bg-red-50 dark:bg-red-900/20 rounded-full text-red-500 dark:text-red-400 shrink-0">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+        <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 flex items-center gap-4 shadow-sm ${currentDesign === 'foundation' ? 'foundation-card stats-card-orange' : ''}">
+            <div class="p-3 bg-red-50 dark:bg-red-900/20 rounded-xl text-red-600 dark:text-red-400 shrink-0">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
             </div>
             <div class="min-w-0">
-                <h4 class="text-xs md:text-sm font-bold text-slate-800 dark:text-white leading-tight">Unassigned</h4>
-                <p class="text-[10px] md:text-xs text-slate-500 dark:text-slate-400 truncate" id="stat-unassigned">Loading...</p>
+                <h4 class="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1">Weeks Open</h4>
+                <p class="text-2xl font-black text-slate-800 dark:text-white leading-none tracking-tight" id="stat-unassigned">Loading...</p>
             </div>
         </div>
-        <div id="export-card" class="bg-white dark:bg-slate-800 px-2.5 py-2 rounded-md border border-slate-200 dark:border-slate-700 flex items-center gap-2 cursor-pointer hover:border-orange-200 dark:hover:border-orange-900">
-            <div class="p-1.5 bg-blue-50 dark:bg-blue-900/20 rounded-full text-blue-500 dark:text-blue-400 shrink-0">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
+        <div id="export-card" class="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 flex items-center gap-4 shadow-sm cursor-pointer hover:border-orange-500 dark:hover:border-orange-500 hover:shadow-md transition-all group ${currentDesign === 'foundation' ? 'foundation-card stats-card-green' : ''}">
+            <div class="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl text-blue-600 dark:text-blue-400 shrink-0 group-hover:bg-orange-50 dark:group-hover:bg-orange-900/20 group-hover:text-orange-600 dark:group-hover:text-orange-400 transition-colors">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
             </div>
             <div class="min-w-0">
-                <h4 class="text-xs md:text-sm font-bold text-slate-800 dark:text-white leading-tight">Export</h4>
-                <p class="text-[10px] md:text-xs text-slate-500 dark:text-slate-400 truncate">CSV report</p>
+                <h4 class="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1">Export Data</h4>
+                <p class="text-2xl font-black text-slate-800 dark:text-white leading-none tracking-tight group-hover:text-orange-600 transition-colors">CSV Report</p>
             </div>
         </div>
     </div>
@@ -820,17 +834,21 @@ const renderCalendarView = async (container) => {
     // Month stats update
     const updateStats = (count) => {
         const total = weeks.length;
-        document.getElementById('stat-scheduled').textContent = `${count} tasks planned for this month`;
-        document.getElementById('stat-unassigned').textContent = `${total - count} weeks require assignment`;
+        document.getElementById('stat-scheduled').textContent = `${count}`;
+        document.getElementById('stat-unassigned').textContent = `${total - count}`;
     };
 
     // Month navigation
     document.getElementById('prev-month').addEventListener('click', () => {
-        currentMonth = subMonths(currentMonth, 1);
+        currentMonth = subMonths(currentMonth, calendarViewRange);
         renderCalendarView(container);
     });
     document.getElementById('next-month').addEventListener('click', () => {
-        currentMonth = addMonths(currentMonth, 1);
+        currentMonth = addMonths(currentMonth, calendarViewRange);
+        renderCalendarView(container);
+    });
+    document.getElementById('calendar-range-select').addEventListener('change', (e) => {
+        calendarViewRange = parseInt(e.target.value, 10);
         renderCalendarView(container);
     });
 
@@ -900,18 +918,75 @@ const renderCalendarView = async (container) => {
         }
     });
 
+    // Drag and Drop Logic for Weeks
+    const weeksList = document.getElementById('weeks-list');
+    let draggedActivityData = null;
+
+    weeksList.addEventListener('dragstart', (e) => {
+        const item = e.target.closest('.draggable-activity');
+        if (item) {
+            draggedActivityData = item.dataset.activity;
+            e.dataTransfer.effectAllowed = 'move';
+            e.target.classList.add('opacity-50', 'scale-95');
+        }
+    });
+
+    weeksList.addEventListener('dragend', (e) => {
+        if (e.target.classList.contains('draggable-activity')) {
+            e.target.classList.remove('opacity-50', 'scale-95');
+        }
+    });
+
+    weeksList.addEventListener('dragover', (e) => {
+        e.preventDefault(); // Necessary to allow dropping
+        const dropzone = e.target.closest('.calendar-week-row');
+        if (dropzone && document.getElementById(`activity-${dropzone.dataset.week}`).textContent.includes('Empty week')) {
+            dropzone.classList.add('bg-orange-50/50', 'dark:bg-slate-700');
+        }
+    });
+
+    weeksList.addEventListener('dragleave', (e) => {
+        const dropzone = e.target.closest('.calendar-week-row');
+        if (dropzone) {
+            dropzone.classList.remove('bg-orange-50/50', 'dark:bg-slate-700');
+        }
+    });
+
+    weeksList.addEventListener('drop', async (e) => {
+        e.preventDefault();
+        const dropzone = e.target.closest('.calendar-week-row');
+        if (dropzone && draggedActivityData) {
+            dropzone.classList.remove('bg-orange-50/50', 'dark:bg-slate-700');
+            const targetWeekKey = dropzone.dataset.week;
+            const targetEmpty = document.getElementById(`activity-${targetWeekKey}`).textContent.includes('Empty week');
+
+            if (targetEmpty) {
+                const activityInfo = JSON.parse(draggedActivityData);
+                const targetDate = parseISO(targetWeekKey);
+                try {
+                    await updateActivity(activityInfo.id, { week_start: targetDate });
+                    renderCalendarView(container);
+                } catch (err) {
+                    console.error('Error updating activity date:', err);
+                    alert('Failed to move activity.');
+                }
+            }
+        }
+        draggedActivityData = null;
+    });
+
     // Load existing activities
     const count = await loadMonthActivities(weeks);
     updateStats(count);
 };
 
 const TYPE_STYLES = {
-    'Congregation Visit': { bg: 'bg-blue-100 dark:bg-blue-900/30', text: 'text-blue-800 dark:text-blue-300', border: 'border-transparent' },
-    'Assembly': { bg: 'bg-orange-100 dark:bg-orange-900/30', text: 'text-orange-800 dark:text-orange-300', border: 'border-transparent' },
-    'School': { bg: 'bg-yellow-100 dark:bg-yellow-900/30', text: 'text-yellow-800 dark:text-yellow-300', border: 'border-transparent' },
-    'Group Visit': { bg: 'bg-green-100 dark:bg-green-900/30', text: 'text-green-800 dark:text-green-300', border: 'border-transparent' },
-    'Pioneer Week': { bg: 'bg-indigo-100 dark:bg-indigo-900/30', text: 'text-indigo-800 dark:text-indigo-300', border: 'border-transparent' },
-    'Miscellaneous': { bg: 'bg-gray-100 dark:bg-slate-700/50', text: 'text-gray-800 dark:text-slate-300', border: 'border-transparent' },
+    'Congregation Visit': { bg: 'bg-blue-50/50 dark:bg-blue-500/10', text: 'text-blue-700 dark:text-blue-300', border: 'border-blue-200/50 dark:border-blue-500/20' },
+    'Assembly': { bg: 'bg-orange-50/50 dark:bg-orange-500/10', text: 'text-orange-700 dark:text-orange-300', border: 'border-orange-200/50 dark:border-orange-500/20' },
+    'School': { bg: 'bg-yellow-50/50 dark:bg-yellow-500/10', text: 'text-yellow-700 dark:text-yellow-300', border: 'border-yellow-200/50 dark:border-yellow-500/20' },
+    'Group Visit': { bg: 'bg-green-50/50 dark:bg-green-500/10', text: 'text-green-700 dark:text-green-300', border: 'border-green-200/50 dark:border-green-500/20' },
+    'Pioneer Week': { bg: 'bg-indigo-50/50 dark:bg-indigo-500/10', text: 'text-indigo-700 dark:text-indigo-300', border: 'border-indigo-200/50 dark:border-indigo-500/20' },
+    'Miscellaneous': { bg: 'bg-slate-50/50 dark:bg-slate-500/10', text: 'text-slate-700 dark:text-slate-300', border: 'border-slate-200/50 dark:border-slate-500/20' },
 };
 
 const loadMonthActivities = async (weeks) => {
@@ -934,30 +1009,41 @@ const loadMonthActivities = async (weeks) => {
         weeks.forEach(tuesday => {
             const weekKey = format(tuesday, 'yyyy-MM-dd');
             const activity = activityMap[weekKey];
-            const typeEl = document.getElementById(`type-${weekKey}`);
-            const detailsEl = document.getElementById(`details-${weekKey}`);
+            const activityEl = document.getElementById(`activity-${weekKey}`);
             const actionEl = document.getElementById(`action-${weekKey}`);
 
-            if (activity && typeEl && detailsEl && actionEl) {
+            if (activity && activityEl && actionEl) {
                 const style = TYPE_STYLES[activity.type] || TYPE_STYLES['Congregation Visit'];
-                typeEl.innerHTML = `<span class="inline-block px-2 py-px rounded text-xs font-bold uppercase tracking-wider ${style.bg} ${style.text}">${activity.type}</span>`;
 
-                let detailHtml = '';
-                if (activity.type === 'Congregation Visit' && activity.congregationName) {
-                    detailHtml = `<span class="block text-sm font-semibold text-slate-800 dark:text-slate-200">${activity.congregationName}</span>`;
-                } else {
-                    detailHtml = `<span class="block text-sm font-semibold text-slate-800 dark:text-slate-200">${activity.type}</span>`;
-                }
+                let activityHtml = `
+                    <div class="flex items-center gap-3">
+                        <span class="inline-block px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${style.bg} ${style.text} ${style.border}">${activity.type}</span>
+                        <span class="text-sm font-semibold text-slate-800 dark:text-slate-200">
+                            ${activity.type === 'Congregation Visit' ? (activity.congregationName || 'Visit') : activity.type}
+                        </span>
+                    </div>
+                `;
 
                 if (activity.notes) {
-                    detailHtml += `<span class="block text-xs text-slate-500 dark:text-slate-400">${activity.notes}</span>`;
+                    activityHtml += `<span class="block text-xs text-slate-500 dark:text-slate-400 mt-1 ml-1 pl-2 border-l-2 border-slate-100 dark:border-slate-700/50 font-medium">${activity.notes}</span>`;
                 }
 
-                detailsEl.innerHTML = detailHtml;
+                const actSerial = JSON.stringify({ id: activity.id, type: activity.type, congregation_id: activity.congregation_id || null, congregationName: activity.congregationName || null, notes: activity.notes || '' });
+
+                activityEl.innerHTML = `
+                    <div class="draggable-activity cursor-move flex items-center gap-3 w-full p-1 -m-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors" draggable="true" data-activity='${actSerial.replace(/'/g, "&apos;")}'>
+                        <div class="cursor-grab active:cursor-grabbing text-slate-300 dark:text-slate-600 hover:text-slate-400 px-1 shrink-0">
+                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"/></svg>
+                        </div>
+                        <div class="flex-1">
+                            ${activityHtml}
+                        </div>
+                    </div>
+                `;
 
                 if (activity.type === 'Congregation Visit' && activity.congregation_id) {
                     getLastTwoVisitsBefore(activity.congregation_id, tuesday).then(({ last, previous }) => {
-                        if (!last || !detailsEl) return;
+                        if (!last || !activityEl) return;
 
                         const today = new Date(weekKey);
                         const daysSinceLast = (today - last.date) / (1000 * 60 * 60 * 24);
@@ -972,25 +1058,24 @@ const loadMonthActivities = async (weeks) => {
                             const diffMo = Math.abs((daysSinceLast - prevIntervalDays) / 30.44).toFixed(1);
                             const trendColor = isOverdue ? 'text-red-500' : 'text-green-500';
                             const trendArrow = isOverdue ? '↑' : '↓';
-                            const trendLabel = isOverdue ? `${diffMo}mo over` : `${diffMo}mo ahead`;
+                            const trendLabel = isOverdue ? `${diffMo}mo over` : `${diffMo}mo ago`;
                             comparisonHtml = `<span class="font-semibold ${trendColor}">${trendArrow} ${trendLabel}</span>`;
                         }
 
                         const note = document.createElement('span');
-                        note.className = 'block text-xs text-orange-500 font-medium';
-                        note.innerHTML = `Last: ${lastDateStr} · ${moSinceLast}mo${comparisonHtml ? ' · ' + comparisonHtml : ''}`;
-                        detailsEl.appendChild(note);
+                        note.className = 'block text-[11px] text-orange-500/90 font-semibold mt-1 ml-7';
+                        note.innerHTML = `<span class="opacity-70 uppercase text-[9px] tracking-widest mr-1">Last Visit:</span> ${lastDateStr} · ${moSinceLast}mo${comparisonHtml ? ' · ' + comparisonHtml : ''}`;
+                        activityEl.querySelector('.draggable-activity > .flex-1').appendChild(note);
                     }).catch(() => { });
                 }
 
-                const actSerial = JSON.stringify({ id: activity.id, type: activity.type, congregation_id: activity.congregation_id || null, congregationName: activity.congregationName || null, notes: activity.notes || '' });
                 const actionButtons = `
-                    <div class="flex gap-1 justify-end items-center">
-                        <button class="edit-btn p-1 text-slate-500 dark:text-slate-400 hover:text-orange-600 dark:hover:text-orange-400 rounded transition-colors" title="Edit" data-week="${weekKey}" data-activity='${actSerial.replace(/'/g, "&#39;")}'>
-                           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+                    <div class="flex items-center justify-end gap-1.5">
+                        <button class="edit-btn p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700/50 rounded-lg transition-all" title="Edit" data-week="${weekKey}" data-activity='${actSerial.replace(/'/g, "&apos;")}'>
+                           <svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                         </button>
-                        <button class="delete-btn p-1 text-slate-500 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 rounded transition-colors" title="Remove" data-id="${activity.id}" data-type="calendar">
-                           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                        <button class="delete-btn p-1.5 text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-lg transition-all" title="Remove" data-id="${activity.id}" data-type="calendar">
+                           <svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                         </button>
                     </div>`;
                 actionEl.innerHTML = actionButtons;
@@ -1013,6 +1098,18 @@ const openAssignModal = async (weekKey, calendarContainer, existingActivity) => 
     const sunday = addDays(tuesday, 5);
     const weekLabel = `${format(tuesday, 'MMMM d')} – ${format(sunday, 'MMMM d, yyyy')} `;
     const isEdit = !!existingActivity;
+
+    // Fetch last visits for custom dropdown
+    const congsWithVisits = await Promise.all(congregations.map(async c => {
+        const lastVisit = await getLastVisit(c.id);
+        let visitText = 'No previous visits recorded';
+        let months = null;
+        if (lastVisit) {
+            months = Math.floor((tuesday - lastVisit.date) / (1000 * 60 * 60 * 24 * 30.44));
+            visitText = `Last Visit: ${format(lastVisit.date, 'MMMM d, yyyy')}`;
+        }
+        return { ...c, lastVisit, visitText, months };
+    }));
 
     modal.innerHTML = `
         <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-lg p-6 sm:p-8 m-4 relative animate-fade-in-down transform transition-all border border-slate-100 dark:border-slate-700 max-h-[90vh] overflow-y-auto">
@@ -1044,16 +1141,27 @@ const openAssignModal = async (weekKey, calendarContainer, existingActivity) => 
 
                 <div id="congregation-field" style="${isEdit && existingActivity.type !== 'Congregation Visit' ? 'display:none' : ''}">
                     <label class="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Congregation</label>
-                    <div class="relative">
-                         <select name="congregation" id="congregation-select" class="block w-full rounded-xl border-slate-300 dark:border-slate-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 py-3 px-4 appearance-none bg-slate-50 dark:bg-slate-700 text-slate-900 dark:text-white">
-                            <option value="">Select Congregation...</option>
-                            ${congregations.map(c => `<option value="${c.id}" ${isEdit && existingActivity.congregation_id === c.id ? 'selected' : ''}>${c.name}</option>`).join('')}
-                        </select>
-                        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-500">
-                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                    <div class="relative" id="custom-cong-dropdown" tabindex="0">
+                        <div id="custom-cong-trigger" class="flex items-center justify-between w-full rounded-xl border border-slate-300 dark:border-slate-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 py-3 px-4 bg-slate-50 dark:bg-slate-700 text-slate-900 dark:text-white cursor-pointer select-none border-b sm:border-b-0">
+                            <span id="custom-cong-text" class="truncate">${isEdit && existingActivity.congregationName ? existingActivity.congregationName : 'Select Congregation...'}</span>
+                            <svg class="h-4 w-4 text-slate-500 shrink-0 ml-2 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                        </div>
+                        <input type="hidden" name="congregation" id="congregation-select" value="${isEdit && existingActivity.congregation_id ? existingActivity.congregation_id : ''}">
+                        
+                        <div id="custom-cong-menu" class="absolute left-0 right-0 top-full mt-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl z-[60] hidden max-h-[250px] overflow-y-auto isolate py-1 animate-fade-in-up">
+                            ${congsWithVisits.map(c => `
+                                <div class="px-5 py-3.5 hover:bg-slate-50 dark:hover:bg-slate-700/50 cursor-pointer border-b border-slate-100 dark:border-slate-700/50 last:border-0 cong-option transition-colors" data-id="${c.id}" data-name="${c.name}">
+                                    <div class="font-bold text-sm text-slate-900 dark:text-white">${c.name}</div>
+                                    ${c.lastVisit ? `
+                                        <div class="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mt-1 uppercase tracking-[0.05em]">Months Since Last Visit: ${c.months}</div>
+                                        <div class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">${c.visitText}</div>
+                                    ` : `
+                                        <div class="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mt-1 uppercase tracking-[0.05em]">No previous visits recorded</div>
+                                    `}
+                                </div>
+                            `).join('')}
                         </div>
                     </div>
-                    <div id="last-visit-info" class="mt-2 text-xs font-medium h-4 transition-all"></div>
                 </div>
 
                 <div>
@@ -1074,33 +1182,35 @@ const openAssignModal = async (weekKey, calendarContainer, existingActivity) => 
     const typeSelect = document.getElementById('activity-type');
     const congField = document.getElementById('congregation-field');
     const congSelect = document.getElementById('congregation-select');
-    const lastVisitInfo = document.getElementById('last-visit-info');
 
     // Show/hide congregation based on type
     typeSelect.addEventListener('change', () => {
         congField.style.display = typeSelect.value === 'Congregation Visit' ? '' : 'none';
     });
 
-    // Dynamic Last Visit Logic
-    const fetchLastVisit = async (congId) => {
-        if (!congId) { lastVisitInfo.textContent = ''; return; }
-        lastVisitInfo.textContent = 'Checking history...';
-        try {
-            const lastVisit = await getLastVisit(congId);
-            if (lastVisit) {
-                const months = Math.floor((tuesday - lastVisit.date) / (1000 * 60 * 60 * 24 * 30.44));
-                lastVisitInfo.innerHTML = `<span class="text-blue-600">Last visited: ${format(lastVisit.date, 'MMM d, yyyy')} (${months} months ago)</span>`;
-            } else {
-                lastVisitInfo.innerHTML = '<span class="text-slate-400">No previous visit recorded.</span>';
-            }
-        } catch (err) { lastVisitInfo.textContent = ''; console.error(err); }
-    };
-    congSelect.addEventListener('change', () => fetchLastVisit(congSelect.value));
+    // Custom Dropdown Logic
+    const dropdownMenu = document.getElementById('custom-cong-menu');
+    const dropdownTrigger = document.getElementById('custom-cong-trigger');
+    const dropdownText = document.getElementById('custom-cong-text');
 
-    // If editing a congregation visit, fetch last visit info right away
-    if (isEdit && existingActivity.type === 'Congregation Visit' && existingActivity.congregation_id) {
-        fetchLastVisit(existingActivity.congregation_id);
-    }
+    dropdownTrigger.addEventListener('click', (e) => {
+        e.stopPropagation();
+        dropdownMenu.classList.toggle('hidden');
+    });
+
+    document.addEventListener('click', (e) => {
+        if (!dropdownTrigger.contains(e.target) && !dropdownMenu.contains(e.target)) {
+            dropdownMenu.classList.add('hidden');
+        }
+    });
+
+    dropdownMenu.querySelectorAll('.cong-option').forEach(option => {
+        option.addEventListener('click', () => {
+            congSelect.value = option.dataset.id;
+            dropdownText.textContent = option.dataset.name;
+            dropdownMenu.classList.add('hidden');
+        });
+    });
 
     // Close handlers
     const closeModal = () => {
@@ -1121,7 +1231,9 @@ const openAssignModal = async (weekKey, calendarContainer, existingActivity) => 
 
         if (type === 'Congregation Visit') {
             congId = congSelect.value;
-            congName = congSelect.options[congSelect.selectedIndex].text;
+            // Get text from hidden input corresponding option or from the dataset mapping
+            let option = document.querySelector(`.cong-option[data-id="${congId}"]`);
+            congName = option ? option.dataset.name : '';
             if (!congId) { alert("Please select a congregation"); return; }
         }
 
@@ -1332,12 +1444,18 @@ const renderSpeakersView = async (container) => {
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
                 <h2 class="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">Speaker Management</h2>
-                <p class="text-slate-500 dark:text-slate-400 mt-1">Efficiently manage and track speakers across the circuit.</p>
+                <p class="text-slate-500 dark:text-slate-400 mt-1">Efficiently manage and track speakers across the circuit.  <span id="speaker-total" class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300"></span></p>
             </div>
-            <button id="add-speaker-btn" class="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-bold transition-all shadow-lg shadow-blue-600/20">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-                <span>Add New Speaker</span>
-            </button>
+            <div class="flex items-center gap-2">
+                <button id="bulk-import-btn" class="flex items-center gap-2 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 px-4 py-3 rounded-xl font-bold transition-all border border-slate-200 dark:border-slate-600">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                    <span>Bulk Import</span>
+                </button>
+                <button id="add-speaker-btn" class="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-bold transition-all shadow-lg shadow-blue-600/20">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                    <span>Add New Speaker</span>
+                </button>
+            </div>
         </div>
 
         <!-- Filters (Simplified) -->
@@ -1353,14 +1471,14 @@ const renderSpeakersView = async (container) => {
         <!-- Speakers Table -->
         <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm">
             <div class="overflow-x-auto">
-                <table class="w-full text-left">
+                <table class="w-full text-left table-fixed">
                     <thead>
                         <tr class="bg-slate-50 dark:bg-slate-700/50 border-b border-slate-200 dark:border-slate-700">
-                            <th class="px-6 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Full Name</th>
-                            <th class="px-6 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Congregation</th>
-                            <th class="px-6 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Phone / Contact</th>
-                            <th class="px-6 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Status</th>
-                            <th class="px-6 py-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-right">Actions</th>
+                            <th class="w-[30%] px-4 py-3 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:text-slate-700 dark:hover:text-slate-200 select-none transition-colors" data-sort="name">Full Name <span class="sort-arrow inline-block ml-0.5 text-[10px]"></span></th>
+                            <th class="w-[25%] px-4 py-3 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:text-slate-700 dark:hover:text-slate-200 select-none transition-colors" data-sort="congregation">Congregation <span class="sort-arrow inline-block ml-0.5 text-[10px]"></span></th>
+                            <th class="w-[20%] px-4 py-3 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:text-slate-700 dark:hover:text-slate-200 select-none transition-colors" data-sort="phone">Phone <span class="sort-arrow inline-block ml-0.5 text-[10px]"></span></th>
+                            <th class="w-[10%] px-4 py-3 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider cursor-pointer hover:text-slate-700 dark:hover:text-slate-200 select-none transition-colors" data-sort="status">Status <span class="sort-arrow inline-block ml-0.5 text-[10px]"></span></th>
+                            <th class="w-[15%] px-4 py-3 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-right">Actions</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100 dark:divide-slate-700" id="speakers-list">
@@ -1401,36 +1519,36 @@ const renderSpeakersView = async (container) => {
 
                     return `
                     <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors group">
-                        <td class="px-6 py-4 whitespace-nowrap">
+                        <td class="px-4 py-3 whitespace-nowrap">
                             <div class="flex items-center gap-3">
-                                <div class="h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-700 dark:text-blue-300 font-bold text-sm border border-blue-200 dark:border-blue-800">
+                                <div class="h-9 w-9 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-700 dark:text-blue-300 font-bold text-xs border border-blue-200 dark:border-blue-800 shrink-0">
                                     ${initials}
                                 </div>
-                                <div>
-                                    <p class="text-sm font-semibold text-slate-900 dark:text-white">${s.name}</p>
-                                    ${s.email ? `<p class="text-xs text-slate-500 dark:text-slate-400">${s.email}</p>` : ''}
+                                <div class="min-w-0">
+                                    <p class="text-sm font-semibold text-slate-900 dark:text-white truncate">${s.name}</p>
+                                    ${s.email ? `<p class="text-xs text-slate-500 dark:text-slate-400 truncate">${s.email}</p>` : ''}
                                 </div>
                             </div>
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <p class="text-sm text-slate-700 dark:text-slate-300">${s.congregation || 'Unknown'}</p>
+                        <td class="px-4 py-3">
+                            <p class="text-sm text-slate-700 dark:text-slate-300 truncate">${s.congregation || 'Unknown'}</p>
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
-                            <p class="text-sm text-slate-700 dark:text-slate-300 font-mono tracking-tight">${s.phone || '-'}</p>
+                        <td class="px-4 py-3">
+                            <p class="text-sm text-slate-700 dark:text-slate-300 font-mono tracking-tight truncate">${s.phone || '-'}</p>
                         </td>
-                        <td class="px-6 py-4 whitespace-nowrap">
+                        <td class="px-4 py-3 whitespace-nowrap">
                             <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold ${statusClass}">
                                 <span class="w-1.5 h-1.5 rounded-full ${statusDot}"></span>
                                 ${s.status || 'Active'}
                             </span>
                         </td>
-                        <td class="px-6 py-4 text-right whitespace-nowrap">
-                            <div class="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <button class="p-2 hover:bg-slate-100 dark:hover:bg-slate-600 rounded-lg text-slate-500 dark:text-slate-400 transition-colors" title="Edit">
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+                        <td class="px-4 py-3 text-right whitespace-nowrap">
+                            <div class="flex items-center justify-end gap-1">
+                                <button class="edit-speaker-btn p-1.5 hover:bg-slate-100 dark:hover:bg-slate-600 rounded-lg text-slate-500 dark:text-slate-400 transition-colors" title="Edit" data-id="${s.id}">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
                                 </button>
-                                <button class="p-2 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg text-slate-500 hover:text-red-600 dark:text-slate-400 dark:hover:text-red-400 transition-colors" title="Delete">
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                <button class="delete-speaker-btn p-1.5 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg text-slate-500 hover:text-red-600 dark:text-slate-400 dark:hover:text-red-400 transition-colors" title="Delete" data-id="${s.id}" data-name="${s.name}">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                                 </button>
                             </div>
                         </td>
@@ -1442,19 +1560,95 @@ const renderSpeakersView = async (container) => {
 
         renderList(speakers);
 
+        // Show total count
+        const totalEl = document.getElementById('speaker-total');
+        if (totalEl) totalEl.textContent = `${speakers.length} total`;
+
+        // Sort state
+        let sortField = null;
+        let sortAsc = true;
+        let currentItems = [...speakers];
+
+        const sortItems = (items) => {
+            if (!sortField) return items;
+            return [...items].sort((a, b) => {
+                const valA = (a[sortField] || '').toLowerCase();
+                const valB = (b[sortField] || '').toLowerCase();
+                if (valA < valB) return sortAsc ? -1 : 1;
+                if (valA > valB) return sortAsc ? 1 : -1;
+                return 0;
+            });
+        };
+
+        const updateSortArrows = () => {
+            document.querySelectorAll('th[data-sort] .sort-arrow').forEach(el => {
+                const field = el.parentElement.dataset.sort;
+                el.textContent = field === sortField ? (sortAsc ? '▲' : '▼') : '';
+            });
+        };
+
+        const applyFilterAndSort = () => {
+            const term = (document.getElementById('speaker-search')?.value || '').toLowerCase();
+            let items = speakers;
+            if (term) {
+                items = items.filter(s =>
+                    s.name.toLowerCase().includes(term) ||
+                    (s.congregation && s.congregation.toLowerCase().includes(term))
+                );
+            }
+            currentItems = sortItems(items);
+            renderList(currentItems);
+        };
+
         // Search Filter
         const searchInput = document.getElementById('speaker-search');
-        searchInput.addEventListener('input', (e) => {
-            const term = e.target.value.toLowerCase();
-            const filtered = speakers.filter(s =>
-                s.name.toLowerCase().includes(term) ||
-                (s.congregation && s.congregation.toLowerCase().includes(term))
-            );
-            renderList(filtered);
+        searchInput.addEventListener('input', () => applyFilterAndSort());
+
+        // Sort headers
+        document.querySelectorAll('th[data-sort]').forEach(th => {
+            th.addEventListener('click', () => {
+                const field = th.dataset.sort;
+                if (sortField === field) {
+                    sortAsc = !sortAsc;
+                } else {
+                    sortField = field;
+                    sortAsc = true;
+                }
+                updateSortArrows();
+                applyFilterAndSort();
+            });
+        });
+
+        // Delegate click events for list
+        list.addEventListener('click', async (e) => {
+            const deleteBtn = e.target.closest('.delete-speaker-btn');
+            if (deleteBtn) {
+                const id = deleteBtn.dataset.id;
+                const name = deleteBtn.dataset.name;
+                if (!confirm(`Delete speaker "${name}"?`)) return;
+                try {
+                    await deleteSpeaker(id);
+                    renderSpeakersView(container);
+                } catch (err) {
+                    alert('Error deleting speaker: ' + err.message);
+                }
+                return;
+            }
+
+            const editBtn = e.target.closest('.edit-speaker-btn');
+            if (editBtn) {
+                const id = editBtn.dataset.id;
+                const speaker = speakers.find(s => s.id === id);
+                if (speaker) {
+                    renderAddSpeakerModal(container, speaker);
+                }
+                return;
+            }
         });
 
         // Add Speaker Button
         document.getElementById('add-speaker-btn')?.addEventListener('click', () => renderAddSpeakerModal(container));
+        document.getElementById('bulk-import-btn')?.addEventListener('click', () => renderBulkImportSpeakersModal(container));
 
     } catch (err) {
         document.getElementById('speakers-list').innerHTML = `<tr><td colspan="5" class="px-6 py-8 text-center text-red-500">Error loading speakers: ${err.message}</td></tr>`;
@@ -1479,63 +1673,94 @@ const renderAssemblyDetailsView = async (container) => {
         <!-- Content (Hidden initially) -->
         <div id="details-content" class="hidden space-y-8">
             <!-- Header -->
-            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-slate-900 mobile-compact-p rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
-                <div class="flex items-center gap-6">
-                    <button id="back-to-assemblies" class="p-2 -ml-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
-                    </button>
-                    <div>
-                        <div class="flex items-center gap-2">
-                            <span class="material-symbols-outlined text-blue-600 dark:text-blue-400">analytics</span>
-                            <h2 id="asm-detail-theme" class="text-xl font-bold tracking-tight text-slate-900 dark:text-white">Loading...</h2>
-                        </div>
-                        <div class="flex items-center gap-2 text-slate-500 dark:text-slate-400 mt-1">
-                            <span class="material-symbols-outlined text-sm">event</span>
-                            <span id="asm-detail-date" class="text-sm font-medium">---</span>
-                            <span class="mx-2">•</span>
-                            <span class="material-symbols-outlined text-sm">location_on</span>
-                            <span id="asm-detail-location" class="text-sm font-medium">---</span>
+            <div class="relative overflow-hidden bg-white dark:bg-slate-900 px-6 py-8 md:p-8 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 shadow-sm group hover:shadow-md transition-shadow">
+                <!-- Decorative background elements -->
+                <div class="absolute top-0 right-0 -mt-4 -mr-4 w-32 h-32 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/10 dark:to-indigo-900/10 rounded-full blur-2xl opacity-50 group-hover:opacity-100 transition-opacity"></div>
+                <div class="absolute bottom-0 left-0 -mb-4 -ml-4 w-24 h-24 bg-gradient-to-tr from-purple-50 to-pink-50 dark:from-purple-900/10 dark:to-pink-900/10 rounded-full blur-xl opacity-50 group-hover:opacity-100 transition-opacity"></div>
+                
+                <div class="relative flex flex-col md:flex-row md:items-center justify-between gap-6">
+                    <div class="flex items-start md:items-center gap-5">
+                        <button id="back-to-assemblies" class="mt-1 md:mt-0 p-2.5 -ml-2 text-slate-400 hover:text-slate-800 dark:hover:text-white transition-all rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center group/btn shadow-sm border border-transparent hover:border-slate-200 dark:hover:border-slate-700">
+                            <svg class="w-5 h-5 transform group-hover/btn:-translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+                        </button>
+                        <div>
+                            <div class="flex items-center gap-3">
+                                <div class="bg-blue-100/50 dark:bg-blue-900/20 p-1.5 rounded-lg border border-blue-200/50 dark:border-blue-800/30">
+                                    <span class="material-symbols-outlined text-blue-600 dark:text-blue-400 text-[20px] leading-none">analytics</span>
+                                </div>
+                                <h2 id="asm-detail-theme" class="text-2xl md:text-3xl font-black tracking-tight text-slate-900 dark:text-white">Loading...</h2>
+                            </div>
+                            <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-slate-500 dark:text-slate-400 mt-3 md:ml-11">
+                                <div class="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800/50 px-2.5 py-1 rounded-md border border-slate-100 dark:border-slate-800">
+                                    <span class="material-symbols-outlined text-[16px] text-indigo-500 dark:text-indigo-400">event</span>
+                                    <span id="asm-detail-date" class="text-sm font-semibold text-slate-700 dark:text-slate-300">---</span>
+                                </div>
+                                <div class="flex items-center gap-1.5 bg-slate-50 dark:bg-slate-800/50 px-2.5 py-1 rounded-md border border-slate-100 dark:border-slate-800">
+                                    <span class="material-symbols-outlined text-[16px] text-teal-500 dark:text-teal-400">location_on</span>
+                                    <span id="asm-detail-location" class="text-sm font-semibold text-slate-700 dark:text-slate-300">---</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                </div>
-                <div class="flex items-center gap-3">
-                    <button class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-blue-700 shadow-lg shadow-blue-600/20 transition-all">
-                        <span class="material-symbols-outlined text-sm">description</span>
-                        Generate Report
-                    </button>
+                    <div class="flex items-center gap-3 md:self-stretch md:items-start pt-2 md:pt-0">
+                        <button class="w-full md:w-auto bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-5 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 shadow-lg shadow-blue-600/20 hover:shadow-blue-600/30 transform hover:-translate-y-0.5 transition-all">
+                            <span class="material-symbols-outlined text-[18px]">description</span>
+                            Generate Report
+                        </button>
+                    </div>
                 </div>
             </div>
 
             <!-- Stats Cards -->
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
                 <!-- Total Talks -->
-                <div class="bg-white dark:bg-slate-900 mobile-compact-p rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between">
-                    <div>
-                        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Total Talks</p>
-                        <h3 id="stat-total-talks" class="text-3xl font-black text-slate-900 dark:text-white">0</h3>
-                    </div>
-                    <div class="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-xl flex items-center justify-center">
-                        <span class="material-symbols-outlined">record_voice_over</span>
+                <div class="bg-gradient-to-br from-white to-slate-50 dark:from-slate-900 dark:to-slate-800/80 px-6 py-6 rounded-2xl border border-slate-200/80 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
+                    <div class="absolute top-0 right-0 w-24 h-24 bg-blue-500/5 dark:bg-blue-400/5 rounded-full blur-2xl -mr-8 -mt-8"></div>
+                    <div class="relative flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1 shadow-sm">Total Talks</p>
+                            <div class="flex items-baseline gap-2">
+                                <h3 id="stat-total-talks" class="text-4xl font-black text-slate-900 dark:text-white tracking-tight leading-none group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">0</h3>
+                                <span class="text-sm font-medium text-slate-400 hidden group-hover:inline-block transition-opacity opacity-0 group-hover:opacity-100 animate-slide-in-right">Scheduled</span>
+                            </div>
+                        </div>
+                        <div class="w-14 h-14 bg-white dark:bg-slate-800 rounded-2xl flex items-center justify-center shadow-sm border border-slate-100 dark:border-slate-700 text-blue-500 dark:text-blue-400 transform group-hover:scale-110 group-hover:rotate-3 transition-transform">
+                            <span class="material-symbols-outlined text-[28px]">record_voice_over</span>
+                        </div>
                     </div>
                 </div>
+                
                 <!-- Confirmed Speakers -->
-                <div class="bg-white dark:bg-slate-900 mobile-compact-p rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between">
-                    <div>
-                        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Confirmed Speakers</p>
-                        <h3 id="stat-confirmed-speakers" class="text-3xl font-black text-slate-900 dark:text-white">0</h3>
-                    </div>
-                    <div class="w-10 h-10 md:w-12 md:h-12 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 rounded-xl flex items-center justify-center shrink-0">
-                        <span class="material-symbols-outlined text-xl md:text-2xl">person_check</span>
+                <div class="bg-gradient-to-br from-white to-slate-50 dark:from-slate-900 dark:to-slate-800/80 px-6 py-6 rounded-2xl border border-slate-200/80 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
+                    <div class="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 dark:bg-emerald-400/5 rounded-full blur-2xl -mr-8 -mt-8"></div>
+                    <div class="relative flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1 shadow-sm">Confirmed</p>
+                            <div class="flex items-baseline gap-2">
+                                <h3 id="stat-confirmed-speakers" class="text-4xl font-black text-slate-900 dark:text-white tracking-tight leading-none group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">0</h3>
+                                <span class="text-sm font-medium text-slate-400 hidden group-hover:inline-block transition-opacity opacity-0 group-hover:opacity-100 animate-slide-in-right">Speakers</span>
+                            </div>
+                        </div>
+                        <div class="w-14 h-14 bg-white dark:bg-slate-800 rounded-2xl flex items-center justify-center shadow-sm border border-slate-100 dark:border-slate-700 text-emerald-500 dark:text-emerald-400 transform group-hover:scale-110 group-hover:-rotate-3 transition-transform">
+                            <span class="material-symbols-outlined text-[28px]">person_check</span>
+                        </div>
                     </div>
                 </div>
+
                 <!-- Pending Assignments -->
-                <div class="bg-white dark:bg-slate-900 mobile-compact-p rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between">
-                    <div>
-                        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Pending Assignments</p>
-                        <h3 id="stat-pending-assignments" class="text-3xl font-black text-slate-900 dark:text-white">0</h3>
-                    </div>
-                    <div class="w-10 h-10 md:w-12 md:h-12 bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 rounded-xl flex items-center justify-center shrink-0">
-                        <span class="material-symbols-outlined text-xl md:text-2xl">assignment_late</span>
+                <div class="bg-gradient-to-br from-white to-slate-50 dark:from-slate-900 dark:to-slate-800/80 px-6 py-6 rounded-2xl border border-slate-200/80 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
+                    <div class="absolute top-0 right-0 w-24 h-24 bg-amber-500/5 dark:bg-amber-400/5 rounded-full blur-2xl -mr-8 -mt-8"></div>
+                    <div class="relative flex items-center justify-between">
+                        <div>
+                            <p class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1 shadow-sm">Pending</p>
+                            <div class="flex items-baseline gap-2">
+                                <h3 id="stat-pending-assignments" class="text-4xl font-black text-slate-900 dark:text-white tracking-tight leading-none group-hover:text-amber-500 dark:group-hover:text-amber-400 transition-colors">0</h3>
+                                <span class="text-sm font-medium text-slate-400 hidden group-hover:inline-block transition-opacity opacity-0 group-hover:opacity-100 animate-slide-in-right">Assignments</span>
+                            </div>
+                        </div>
+                        <div class="w-14 h-14 bg-white dark:bg-slate-800 rounded-2xl flex items-center justify-center shadow-sm border border-slate-100 dark:border-slate-700 text-amber-500 dark:text-amber-400 transform group-hover:scale-110 transition-transform">
+                            <span class="material-symbols-outlined text-[28px]">assignment_late</span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1548,7 +1773,10 @@ const renderAssemblyDetailsView = async (container) => {
                         <p class="text-[10px] md:text-sm text-slate-500 dark:text-slate-400">Manage talks and speakers</p>
                     </div>
                     <div class="flex gap-2">
-                        <button id="add-talk-btn" class="px-3 py-1.5 md:px-4 md:py-2 bg-slate-900 dark:bg-blue-600 text-white rounded-lg text-xs md:text-sm font-bold flex items-center gap-1.5 hover:opacity-90 transition-all">
+                        <button id="bulk-import-talks-btn" class="px-3 py-1.5 md:px-4 md:py-2 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 rounded-lg text-xs md:text-sm font-bold flex items-center gap-1.5 transition-all border border-slate-200 dark:border-slate-600 shadow-sm">
+                            <span class="material-symbols-outlined text-sm">upload_file</span> <span class="hidden sm:inline">Bulk Import</span><span class="sm:hidden">Import</span>
+                        </button>
+                        <button id="add-talk-btn" class="px-3 py-1.5 md:px-4 md:py-2 bg-slate-900 dark:bg-blue-600 text-white rounded-lg text-xs md:text-sm font-bold flex items-center gap-1.5 hover:opacity-90 transition-all shadow-md">
                             <span class="material-symbols-outlined text-sm">add</span> <span class="hidden sm:inline">Add Talk</span><span class="sm:hidden">Add</span>
                         </button>
                     </div>
@@ -1636,19 +1864,19 @@ const renderAssemblyDetailsView = async (container) => {
                              <span class="text-sm font-semibold text-slate-900 dark:text-white truncate max-w-[80px] sm:max-w-none">${t.speakerName}</span>
                         </div>
                         ` : `
-                        <button class="text-[10px] sm:text-xs font-bold text-blue-600 dark:text-blue-400 px-2 py-1 bg-blue-50 dark:bg-blue-900/20 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-all flex items-center gap-1">
+                        <button class="assign-talk-btn text-[10px] sm:text-xs font-bold text-blue-600 dark:text-blue-400 px-2 py-1 bg-blue-50 dark:bg-blue-900/20 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-all flex items-center gap-1" data-id="${t.id}">
                             <span class="material-symbols-outlined text-xs">person_add</span> <span class="hidden sm:inline">Assign</span><span class="sm:hidden">Add</span>
                         </button>
                         `}
                     </td>
                     <td class="hidden md:table-cell px-6 py-5">
-                         <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold ${statusClass}">
+                         <button class="status-talk-btn inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold ${statusClass} hover:opacity-80 transition-opacity" data-id="${t.id}" data-status="${t.status}">
                             <span class="w-1.5 h-1.5 rounded-full ${statusDot}"></span>
                             ${t.status || 'Pending'}
-                        </span>
+                        </button>
                     </td>
                     <td class="px-4 py-3 md:px-6 md:py-5 text-right">
-                        <button class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"><span class="material-symbols-outlined">more_horiz</span></button>
+                        <button class="edit-talk-btn text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors" data-id="${t.id}"><span class="material-symbols-outlined">edit</span></button>
                     </td>
                 </tr>
                 `;
@@ -1663,6 +1891,45 @@ const renderAssemblyDetailsView = async (container) => {
         document.getElementById('back-to-assemblies').addEventListener('click', () => setView('assemblies'));
         document.getElementById('add-talk-btn').addEventListener('click', () => {
             renderAddTalkModal(container, activeAssemblyId);
+        });
+        document.getElementById('bulk-import-talks-btn')?.addEventListener('click', () => {
+            renderBulkImportTalksModal(container, activeAssemblyId);
+        });
+
+        // Event delegation for table buttons
+        list.addEventListener('click', async (e) => {
+            const assignBtn = e.target.closest('.assign-talk-btn');
+            if (assignBtn) {
+                const talk = talks.find(t => t.id === assignBtn.dataset.id);
+                if (talk) renderAddTalkModal(container, activeAssemblyId, talk);
+                return;
+            }
+
+            const editBtn = e.target.closest('.edit-talk-btn');
+            if (editBtn) {
+                const talk = talks.find(t => t.id === editBtn.dataset.id);
+                if (talk) renderAddTalkModal(container, activeAssemblyId, talk);
+                return;
+            }
+
+            const statusBtn = e.target.closest('.status-talk-btn');
+            if (statusBtn) {
+                const id = statusBtn.dataset.id;
+                const currentStatus = statusBtn.dataset.status || 'Pending';
+                const statusWorkflow = ['Pending', 'Confirmed', 'Cancelled'];
+                let currentIndex = statusWorkflow.indexOf(currentStatus);
+                if (currentIndex === -1) currentIndex = 0;
+                const nextStatus = statusWorkflow[(currentIndex + 1) % statusWorkflow.length];
+
+                try {
+                    await updateTalk(activeAssemblyId, id, { status: nextStatus });
+                    renderAssemblyDetailsView(container);
+                } catch (err) {
+                    console.error("Error updating status:", err);
+                    alert("Failed to update status: " + err.message);
+                }
+                return;
+            }
         });
 
     } catch (err) {
@@ -1681,13 +1948,14 @@ const renderReportsView = async (container) => {
 };
 
 // ─── MODALS ──────────────────────────────────────────────
-const renderAddSpeakerModal = async (container) => {
+const renderAddSpeakerModal = async (container, existingSpeaker = null) => {
+    const isEdit = !!existingSpeaker;
     const modal = document.createElement('div');
     modal.className = "fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-[2px] animate-fade-in";
     modal.innerHTML = `
     <div class="bg-white dark:bg-slate-900 w-full max-w-[520px] rounded-xl shadow-2xl border border-slate-200 dark:border-slate-800 flex flex-col overflow-hidden animate-scale-in">
         <div class="flex items-center justify-between px-6 py-5 border-b border-slate-100 dark:border-slate-800">
-            <h3 class="text-xl font-bold text-slate-900 dark:text-white">Add New Speaker</h3>
+            <h3 class="text-xl font-bold text-slate-900 dark:text-white">${isEdit ? 'Edit Speaker' : 'Add New Speaker'}</h3>
             <button id="close-modal-btn" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
             </button>
@@ -1695,29 +1963,29 @@ const renderAddSpeakerModal = async (container) => {
         <div class="p-6 space-y-5">
             <div class="space-y-1.5">
                 <label class="text-sm font-semibold text-slate-700 dark:text-slate-300">Full Name</label>
-                <input id="spk-name" class="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none" placeholder="e.g. John Doe" type="text"/>
+                <input id="spk-name" value="${isEdit ? (existingSpeaker.name || '') : ''}" class="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none" placeholder="e.g. John Doe" type="text"/>
             </div>
             <div class="grid grid-cols-2 gap-4">
                 <div class="space-y-1.5">
                     <label class="text-sm font-semibold text-slate-700 dark:text-slate-300">Email</label>
-                    <input id="spk-email" class="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none" placeholder="john@example.com" type="email"/>
+                    <input id="spk-email" value="${isEdit ? (existingSpeaker.email || '') : ''}" class="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none" placeholder="john@example.com" type="email"/>
                 </div>
                 <div class="space-y-1.5">
                     <label class="text-sm font-semibold text-slate-700 dark:text-slate-300">Phone</label>
-                    <input id="spk-phone" class="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none" placeholder="+1 234 567 890" type="tel"/>
+                    <input id="spk-phone" value="${isEdit ? (existingSpeaker.phone || '') : ''}" class="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none" placeholder="+1 234 567 890" type="tel"/>
                 </div>
             </div>
             <div class="grid grid-cols-2 gap-4">
                 <div class="space-y-1.5">
                     <label class="text-sm font-semibold text-slate-700 dark:text-slate-300">Congregation</label>
-                    <input id="spk-congregation" class="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Congregation Name" type="text"/>
+                    <input id="spk-congregation" value="${isEdit ? (existingSpeaker.congregation || '') : ''}" class="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Congregation Name" type="text"/>
                 </div>
                 <div class="space-y-1.5">
                     <label class="text-sm font-semibold text-slate-700 dark:text-slate-300">Status</label>
                     <select id="spk-status" class="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none">
-                        <option value="Active">Active</option>
-                        <option value="Unavailable">Unavailable</option>
-                        <option value="Pending">Pending</option>
+                        <option value="Active" ${isEdit && existingSpeaker.status === 'Active' ? 'selected' : ''}>Active</option>
+                        <option value="Unavailable" ${isEdit && existingSpeaker.status === 'Unavailable' ? 'selected' : ''}>Unavailable</option>
+                        <option value="Pending" ${isEdit && existingSpeaker.status === 'Pending' ? 'selected' : ''}>Pending</option>
                     </select>
                 </div>
             </div>
@@ -1725,7 +1993,7 @@ const renderAddSpeakerModal = async (container) => {
         <div class="flex items-center justify-end gap-3 px-6 py-6 bg-slate-50 dark:bg-slate-800/30 border-t border-slate-100 dark:border-slate-800">
             <button id="cancel-modal-btn" class="px-5 py-2.5 rounded-lg text-sm font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">Cancel</button>
             <button id="save-speaker-btn" class="px-6 py-2.5 rounded-lg text-sm font-bold bg-blue-600 text-white hover:bg-blue-700 shadow-md shadow-blue-600/20 transition-all flex items-center gap-2">
-                <span>Add Speaker</span>
+                <span>${isEdit ? 'Save Changes' : 'Add Speaker'}</span>
             </button>
         </div>
     </div>
@@ -1745,20 +2013,158 @@ const renderAddSpeakerModal = async (container) => {
         try {
             btn.textContent = 'Saving...';
             btn.disabled = true;
-            await addSpeaker({
+            const data = {
                 name,
                 email: document.getElementById('spk-email').value,
                 phone: document.getElementById('spk-phone').value,
                 congregation: document.getElementById('spk-congregation').value,
                 status: document.getElementById('spk-status').value
-            });
+            };
+
+            if (isEdit) {
+                await updateSpeaker(existingSpeaker.id, data);
+            } else {
+                await addSpeaker(data);
+            }
             closeModal();
             renderSpeakersView(container); // Refresh
         } catch (e) {
             alert('Error saving: ' + e.message);
-            btn.textContent = 'Add Speaker';
+            btn.textContent = isEdit ? 'Save Changes' : 'Add Speaker';
             btn.disabled = false;
         }
+    });
+};
+
+const renderBulkImportSpeakersModal = async (container) => {
+    const modal = document.createElement('div');
+    modal.className = "fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-[2px] animate-fade-in";
+    modal.innerHTML = `
+    <div class="bg-white dark:bg-slate-900 w-full max-w-2xl rounded-xl shadow-2xl border border-slate-200 dark:border-slate-800 flex flex-col overflow-hidden animate-scale-in max-h-[90vh]">
+        <div class="flex items-center justify-between px-6 py-5 border-b border-slate-100 dark:border-slate-800">
+            <div>
+                <h3 class="text-xl font-bold text-slate-900 dark:text-white">Bulk Import Speakers</h3>
+                <p class="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Paste plain text — one speaker per line</p>
+            </div>
+            <button id="close-bulk-modal" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+        </div>
+        <div class="p-6 space-y-4 overflow-y-auto">
+            <div class="space-y-1.5">
+                <label class="text-sm font-semibold text-slate-700 dark:text-slate-300">Format: <code class="text-xs bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">Name, Congregation, Phone, Email</code></label>
+                <textarea id="bulk-text" rows="8" class="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 text-sm text-slate-900 dark:text-white font-mono focus:ring-2 focus:ring-blue-500 outline-none resize-y" placeholder="John Doe, Central Cong, 555-1234, john@email.com\nJane Smith, East Cong\nBob Johnson"></textarea>
+            </div>
+            <div id="bulk-preview" class="hidden">
+                <h4 class="text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Preview (<span id="bulk-count">0</span> speakers)</h4>
+                <div class="max-h-48 overflow-y-auto rounded-lg border border-slate-200 dark:border-slate-700">
+                    <table class="w-full text-left text-sm">
+                        <thead><tr class="bg-slate-50 dark:bg-slate-700/50"><th class="px-3 py-2 text-xs font-bold text-slate-500 uppercase">Name</th><th class="px-3 py-2 text-xs font-bold text-slate-500 uppercase">Congregation</th><th class="px-3 py-2 text-xs font-bold text-slate-500 uppercase">Phone</th><th class="px-3 py-2 text-xs font-bold text-slate-500 uppercase">Email</th></tr></thead>
+                        <tbody id="bulk-preview-body" class="divide-y divide-slate-100 dark:divide-slate-700"></tbody>
+                    </table>
+                </div>
+            </div>
+            <div id="bulk-status" class="hidden text-sm font-medium"></div>
+        </div>
+        <div class="flex items-center justify-between gap-3 px-6 py-4 bg-slate-50 dark:bg-slate-800/30 border-t border-slate-100 dark:border-slate-800">
+            <button id="bulk-preview-btn" class="px-5 py-2.5 rounded-lg text-sm font-bold text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-slate-800 transition-colors">Preview</button>
+            <div class="flex gap-3">
+                <button id="cancel-bulk-btn" class="px-5 py-2.5 rounded-lg text-sm font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">Cancel</button>
+                <button id="save-bulk-btn" class="px-6 py-2.5 rounded-lg text-sm font-bold bg-blue-600 text-white hover:bg-blue-700 shadow-md shadow-blue-600/20 transition-all flex items-center gap-2" disabled>
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                    <span>Import All</span>
+                </button>
+            </div>
+        </div>
+    </div>
+    `;
+
+    document.body.appendChild(modal);
+    const closeModal = () => modal.remove();
+    document.getElementById('close-bulk-modal').addEventListener('click', closeModal);
+    document.getElementById('cancel-bulk-btn').addEventListener('click', closeModal);
+
+    let parsedSpeakers = [];
+
+    const parseBulkText = () => {
+        const raw = document.getElementById('bulk-text').value.trim();
+        if (!raw) return [];
+        return raw.split('\n').filter(l => l.trim()).map(line => {
+            const parts = line.split(/[,\t]/).map(p => p.trim());
+            return {
+                name: parts[0] || '',
+                congregation: parts[1] || '',
+                phone: parts[2] || '',
+                email: parts[3] || '',
+                status: 'Active'
+            };
+        }).filter(s => s.name);
+    };
+
+    document.getElementById('bulk-preview-btn').addEventListener('click', () => {
+        parsedSpeakers = parseBulkText();
+        const preview = document.getElementById('bulk-preview');
+        const body = document.getElementById('bulk-preview-body');
+        const count = document.getElementById('bulk-count');
+        const saveBtn = document.getElementById('save-bulk-btn');
+
+        if (parsedSpeakers.length === 0) {
+            preview.classList.add('hidden');
+            saveBtn.disabled = true;
+            document.getElementById('bulk-status').className = 'text-sm font-medium text-red-500';
+            document.getElementById('bulk-status').textContent = 'No valid speakers found. Check your format.';
+            document.getElementById('bulk-status').classList.remove('hidden');
+            return;
+        }
+
+        document.getElementById('bulk-status').classList.add('hidden');
+        count.textContent = parsedSpeakers.length;
+        body.innerHTML = parsedSpeakers.map(s => `
+            <tr>
+                <td class="px-3 py-1.5 text-slate-800 dark:text-slate-200 font-medium">${s.name}</td>
+                <td class="px-3 py-1.5 text-slate-600 dark:text-slate-400">${s.congregation || '—'}</td>
+                <td class="px-3 py-1.5 text-slate-600 dark:text-slate-400">${s.phone || '—'}</td>
+                <td class="px-3 py-1.5 text-slate-600 dark:text-slate-400">${s.email || '—'}</td>
+            </tr>
+        `).join('');
+        preview.classList.remove('hidden');
+        saveBtn.disabled = false;
+    });
+
+    document.getElementById('save-bulk-btn').addEventListener('click', async () => {
+        if (parsedSpeakers.length === 0) return;
+        const btn = document.getElementById('save-bulk-btn');
+        const statusEl = document.getElementById('bulk-status');
+        btn.disabled = true;
+        btn.innerHTML = '<span>Importing...</span>';
+        statusEl.className = 'text-sm font-medium text-blue-500';
+        statusEl.classList.remove('hidden');
+
+        let saved = 0;
+        let errors = 0;
+        for (const speaker of parsedSpeakers) {
+            try {
+                await addSpeaker(speaker);
+                saved++;
+                statusEl.textContent = `Importing ${saved} of ${parsedSpeakers.length}...`;
+            } catch (e) {
+                errors++;
+                console.error('Error importing speaker:', speaker.name, e);
+            }
+        }
+
+        if (errors === 0) {
+            statusEl.className = 'text-sm font-medium text-green-600';
+            statusEl.textContent = `✓ Successfully imported ${saved} speakers!`;
+        } else {
+            statusEl.className = 'text-sm font-medium text-orange-500';
+            statusEl.textContent = `Imported ${saved} speakers, ${errors} failed.`;
+        }
+
+        setTimeout(() => {
+            closeModal();
+            renderSpeakersView(container);
+        }, 1200);
     });
 };
 
@@ -1858,14 +2264,15 @@ const renderAssemblyModal = async (container, assemblyToEdit = null) => {
     });
 };
 
-const renderAddTalkModal = async (container, assemblyId) => {
+const renderAddTalkModal = async (container, assemblyId, existingTalk = null) => {
+    const isEdit = !!existingTalk;
     const speakers = await getSpeakers();
     const modal = document.createElement('div');
     modal.className = "fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-[2px] animate-fade-in";
     modal.innerHTML = `
     <div class="bg-white dark:bg-slate-900 w-full max-w-[620px] rounded-xl shadow-2xl border border-slate-200 dark:border-slate-800 flex flex-col overflow-hidden animate-scale-in">
         <div class="flex items-center justify-between px-6 py-5 border-b border-slate-100 dark:border-slate-800">
-            <h3 class="text-xl font-bold text-slate-900 dark:text-white">Add New Talk</h3>
+            <h3 class="text-xl font-bold text-slate-900 dark:text-white">${isEdit ? 'Edit Talk' : 'Add New Talk'}</h3>
             <button id="close-modal-btn" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
             </button>
@@ -1874,11 +2281,11 @@ const renderAddTalkModal = async (container, assemblyId) => {
             <div class="grid grid-cols-3 gap-4">
                 <div class="col-span-1 space-y-1.5">
                     <label class="text-sm font-semibold text-slate-700 dark:text-slate-300">Start Time</label>
-                    <input id="talk-time" class="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none" type="time" value="09:30"/>
+                    <input id="talk-time" class="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none" type="time" value="${isEdit ? (existingTalk.startTime || '09:30') : '09:30'}"/>
                 </div>
                 <div class="col-span-2 space-y-1.5">
                     <label class="text-sm font-semibold text-slate-700 dark:text-slate-300">Talk Title / Theme</label>
-                    <input id="talk-title" class="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none" placeholder="e.g. Opening Song" type="text"/>
+                    <input id="talk-title" class="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none" placeholder="e.g. Opening Song" type="text" value="${isEdit ? (existingTalk.title || '') : ''}"/>
                 </div>
             </div>
             
@@ -1886,15 +2293,15 @@ const renderAddTalkModal = async (container, assemblyId) => {
                 <div class="space-y-1.5">
                     <label class="text-sm font-semibold text-slate-700 dark:text-slate-300">Type</label>
                     <select id="talk-type" class="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none">
-                        <option value="SC">Symposium (SC)</option>
-                        <option value="AC">Address (AC)</option>
-                        <option value="OS">Song/Prayer (OS)</option>
-                        <option value="TK">Talk (TK)</option>
+                        <option value="SC" ${isEdit && existingTalk.type === 'SC' ? 'selected' : ''}>Symposium (SC)</option>
+                        <option value="AC" ${isEdit && existingTalk.type === 'AC' ? 'selected' : ''}>Address (AC)</option>
+                        <option value="OS" ${isEdit && existingTalk.type === 'OS' ? 'selected' : ''}>Song/Prayer (OS)</option>
+                        <option value="TK" ${(isEdit && existingTalk.type === 'TK') || !isEdit ? 'selected' : ''}>Talk (TK)</option>
                     </select>
                 </div>
                 <div class="space-y-1.5">
                     <label class="text-sm font-semibold text-slate-700 dark:text-slate-300">Duration (min)</label>
-                    <input id="talk-duration" class="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none" type="number" value="10"/>
+                    <input id="talk-duration" class="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none" type="number" value="${isEdit ? (existingTalk.duration || 10) : 10}"/>
                 </div>
             </div>
 
@@ -1902,23 +2309,26 @@ const renderAddTalkModal = async (container, assemblyId) => {
                 <label class="text-sm font-semibold text-slate-700 dark:text-slate-300">Assign Speaker (Optional)</label>
                 <select id="talk-speaker" class="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none">
                     <option value="">-- No Speaker Assigned --</option>
-                    ${speakers.map(s => `<option value="${s.id}">${s.name}</option>`).join('')}
+                    ${speakers.map(s => `<option value="${s.id}" ${isEdit && existingTalk.speakerId === s.id ? 'selected' : ''}>${s.name}</option>`).join('')}
                 </select>
             </div>
             
             <div class="space-y-1.5">
                  <label class="text-sm font-semibold text-slate-700 dark:text-slate-300">Status</label>
                  <select id="talk-status" class="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none">
-                    <option value="Pending">Pending</option>
-                    <option value="Confirmed">Confirmed</option>
+                    <option value="Pending" ${isEdit && existingTalk.status === 'Pending' ? 'selected' : ''}>Pending</option>
+                    <option value="Confirmed" ${isEdit && existingTalk.status === 'Confirmed' ? 'selected' : ''}>Confirmed</option>
                  </select>
             </div>
         </div>
-        <div class="flex items-center justify-end gap-3 px-6 py-6 bg-slate-50 dark:bg-slate-800/30 border-t border-slate-100 dark:border-slate-800">
-            <button id="cancel-modal-btn" class="px-5 py-2.5 rounded-lg text-sm font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">Cancel</button>
-            <button id="save-talk-btn" class="px-6 py-2.5 rounded-lg text-sm font-bold bg-blue-600 text-white hover:bg-blue-700 shadow-md shadow-blue-600/20 transition-all flex items-center gap-2">
-                <span>Save Talk</span>
-            </button>
+        <div class="flex items-center justify-between px-6 py-6 bg-slate-50 dark:bg-slate-800/30 border-t border-slate-100 dark:border-slate-800">
+            ${isEdit ? `<button id="delete-talk-btn" class="px-5 py-2.5 rounded-lg text-sm font-bold text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">Delete Talk</button>` : '<div></div>'}
+            <div class="flex items-center gap-3">
+                <button id="cancel-modal-btn" class="px-5 py-2.5 rounded-lg text-sm font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">Cancel</button>
+                <button id="save-talk-btn" class="px-6 py-2.5 rounded-lg text-sm font-bold bg-blue-600 text-white hover:bg-blue-700 shadow-md shadow-blue-600/20 transition-all flex items-center gap-2">
+                    <span>${isEdit ? 'Save Changes' : 'Save Talk'}</span>
+                </button>
+            </div>
         </div>
     </div>
     `;
@@ -1928,6 +2338,19 @@ const renderAddTalkModal = async (container, assemblyId) => {
     const closeModal = () => modal.remove();
     document.getElementById('close-modal-btn').addEventListener('click', closeModal);
     document.getElementById('cancel-modal-btn').addEventListener('click', closeModal);
+
+    if (isEdit) {
+        document.getElementById('delete-talk-btn').addEventListener('click', async () => {
+            if (!confirm('Are you sure you want to delete this talk?')) return;
+            try {
+                await deleteTalk(assemblyId, existingTalk.id);
+                closeModal();
+                renderAssemblyDetailsView(container);
+            } catch (e) {
+                alert('Error deleting: ' + e.message);
+            }
+        });
+    }
 
     document.getElementById('save-talk-btn').addEventListener('click', async () => {
         const btn = document.getElementById('save-talk-btn');
@@ -1942,7 +2365,7 @@ const renderAddTalkModal = async (container, assemblyId) => {
             const speakerId = speakerSelect.value;
             const speakerName = speakerId ? speakerSelect.options[speakerSelect.selectedIndex].text : null;
 
-            await addTalk(assemblyId, {
+            const talkData = {
                 title,
                 startTime: document.getElementById('talk-time').value, // store as string HH:mm for simplicity or construct Date
                 type: document.getElementById('talk-type').value,
@@ -1950,13 +2373,153 @@ const renderAddTalkModal = async (container, assemblyId) => {
                 speakerId,
                 speakerName,
                 status: document.getElementById('talk-status').value
-            });
+            };
+
+            if (isEdit) {
+                await updateTalk(assemblyId, existingTalk.id, talkData);
+            } else {
+                await addTalk(assemblyId, talkData);
+            }
             closeModal();
             renderAssemblyDetailsView(container); // Refresh details view
         } catch (e) {
             alert('Error saving: ' + e.message);
-            btn.textContent = 'Save Talk';
+            btn.textContent = isEdit ? 'Save Changes' : 'Save Talk';
             btn.disabled = false;
         }
+    });
+};
+
+const renderBulkImportTalksModal = async (container, assemblyId) => {
+    const modal = document.createElement('div');
+    modal.className = "fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-[2px] animate-fade-in";
+    modal.innerHTML = `
+    <div class="bg-white dark:bg-slate-900 w-full max-w-2xl rounded-xl shadow-2xl border border-slate-200 dark:border-slate-800 flex flex-col overflow-hidden animate-scale-in max-h-[90vh]">
+        <div class="flex items-center justify-between px-6 py-5 border-b border-slate-100 dark:border-slate-800">
+            <div>
+                <h3 class="text-xl font-bold text-slate-900 dark:text-white">Bulk Import Talks</h3>
+                <p class="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Paste plain text — one talk per line</p>
+            </div>
+            <button id="close-bulk-talks-modal" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+        </div>
+        <div class="p-6 space-y-4 overflow-y-auto">
+            <div class="space-y-1.5">
+                <label class="text-sm font-semibold text-slate-700 dark:text-slate-300">Format: <code class="text-xs bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">Time, Title, Type (SC/AC/OS/TK), Duration</code></label>
+                <textarea id="bulk-talks-text" rows="8" class="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 text-sm text-slate-900 dark:text-white font-mono focus:ring-2 focus:ring-blue-500 outline-none resize-y" placeholder="09:30, Opening Song, OS, 10\n09:40, Opening Address, AC, 10\n09:50, Symposium Part 1, SC, 15"></textarea>
+            </div>
+            <div id="bulk-talks-preview" class="hidden">
+                <h4 class="text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Preview (<span id="bulk-talks-count">0</span> talks)</h4>
+                <div class="max-h-48 overflow-y-auto rounded-lg border border-slate-200 dark:border-slate-700">
+                    <table class="w-full text-left text-sm">
+                        <thead><tr class="bg-slate-50 dark:bg-slate-700/50"><th class="px-3 py-2 text-xs font-bold text-slate-500 uppercase">Time</th><th class="px-3 py-2 text-xs font-bold text-slate-500 uppercase">Title</th><th class="px-3 py-2 text-xs font-bold text-slate-500 uppercase">Type</th><th class="px-3 py-2 text-xs font-bold text-slate-500 uppercase">Dur.</th></tr></thead>
+                        <tbody id="bulk-talks-preview-body" class="divide-y divide-slate-100 dark:divide-slate-700"></tbody>
+                    </table>
+                </div>
+            </div>
+            <div id="bulk-talks-status" class="hidden text-sm font-medium"></div>
+        </div>
+        <div class="flex items-center justify-between gap-3 px-6 py-4 bg-slate-50 dark:bg-slate-800/30 border-t border-slate-100 dark:border-slate-800">
+            <button id="bulk-talks-preview-btn" class="px-5 py-2.5 rounded-lg text-sm font-bold text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-slate-800 transition-colors">Preview</button>
+            <div class="flex gap-3">
+                <button id="cancel-bulk-talks-btn" class="px-5 py-2.5 rounded-lg text-sm font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">Cancel</button>
+                <button id="save-bulk-talks-btn" class="px-6 py-2.5 rounded-lg text-sm font-bold bg-blue-600 text-white hover:bg-blue-700 shadow-md shadow-blue-600/20 transition-all flex items-center gap-2" disabled>
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                    <span>Import All</span>
+                </button>
+            </div>
+        </div>
+    </div>
+    `;
+
+    document.body.appendChild(modal);
+    const closeModal = () => modal.remove();
+    document.getElementById('close-bulk-talks-modal').addEventListener('click', closeModal);
+    document.getElementById('cancel-bulk-talks-btn').addEventListener('click', closeModal);
+
+    let parsedTalks = [];
+
+    const parseBulkText = () => {
+        const raw = document.getElementById('bulk-talks-text').value.trim();
+        if (!raw) return [];
+        return raw.split('\n').filter(l => l.trim()).map(line => {
+            const parts = line.split(/[,\t]/).map(p => p.trim());
+            return {
+                startTime: parts[0] || '00:00',
+                title: parts[1] || 'Untitled Talk',
+                type: (parts[2] || 'TK').toUpperCase(),
+                duration: parseInt(parts[3]) || 10,
+                speakerId: '',
+                speakerName: null,
+                status: 'Pending'
+            };
+        }).filter(t => t.title);
+    };
+
+    document.getElementById('bulk-talks-preview-btn').addEventListener('click', () => {
+        parsedTalks = parseBulkText();
+        const preview = document.getElementById('bulk-talks-preview');
+        const body = document.getElementById('bulk-talks-preview-body');
+        const count = document.getElementById('bulk-talks-count');
+        const saveBtn = document.getElementById('save-bulk-talks-btn');
+
+        if (parsedTalks.length === 0) {
+            preview.classList.add('hidden');
+            saveBtn.disabled = true;
+            document.getElementById('bulk-talks-status').className = 'text-sm font-medium text-red-500';
+            document.getElementById('bulk-talks-status').textContent = 'No valid talks found. Check your format.';
+            document.getElementById('bulk-talks-status').classList.remove('hidden');
+            return;
+        }
+
+        document.getElementById('bulk-talks-status').classList.add('hidden');
+        count.textContent = parsedTalks.length;
+        body.innerHTML = parsedTalks.map(t => `
+            <tr>
+                <td class="px-3 py-1.5 text-slate-800 dark:text-slate-200 font-medium">${t.startTime}</td>
+                <td class="px-3 py-1.5 text-slate-600 dark:text-slate-400 font-bold">${t.title}</td>
+                <td class="px-3 py-1.5 text-slate-600 dark:text-slate-400">${t.type}</td>
+                <td class="px-3 py-1.5 text-slate-600 dark:text-slate-400">${t.duration}m</td>
+            </tr>
+        `).join('');
+        preview.classList.remove('hidden');
+        saveBtn.disabled = false;
+    });
+
+    document.getElementById('save-bulk-talks-btn').addEventListener('click', async () => {
+        if (parsedTalks.length === 0) return;
+        const btn = document.getElementById('save-bulk-talks-btn');
+        const statusEl = document.getElementById('bulk-talks-status');
+        btn.disabled = true;
+        btn.innerHTML = '<span>Importing...</span>';
+        statusEl.className = 'text-sm font-medium text-blue-500';
+        statusEl.classList.remove('hidden');
+
+        let saved = 0;
+        let errors = 0;
+        for (const talk of parsedTalks) {
+            try {
+                await addTalk(assemblyId, talk);
+                saved++;
+                statusEl.textContent = `Importing ${saved} of ${parsedTalks.length}...`;
+            } catch (e) {
+                errors++;
+                console.error('Error importing talk:', talk.title, e);
+            }
+        }
+
+        if (errors === 0) {
+            statusEl.className = 'text-sm font-medium text-green-600';
+            statusEl.textContent = `✓ Successfully imported ${saved} talks!`;
+        } else {
+            statusEl.className = 'text-sm font-medium text-orange-500';
+            statusEl.textContent = `Imported ${saved} talks, ${errors} failed.`;
+        }
+
+        setTimeout(() => {
+            closeModal();
+            renderAssemblyDetailsView(container);
+        }, 1200);
     });
 };
