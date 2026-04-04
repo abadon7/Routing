@@ -1,4 +1,4 @@
-import { collection, addDoc, getDocs, deleteDoc, updateDoc, doc, getDoc, query, where, orderBy, limit, Timestamp } from "firebase/firestore";
+import { collection, addDoc, getDocs, deleteDoc, updateDoc, doc, getDoc, query, where, orderBy, limit, Timestamp, writeBatch } from "firebase/firestore";
 import { db } from "./firebase";
 
 // Congregations
@@ -211,6 +211,18 @@ export const deleteTalk = async (assemblyId, talkId) => {
     return deleteDoc(doc(db, "assemblies", assemblyId, "talks", talkId));
 };
 
+export const clearAssemblyTalks = async (assemblyId) => {
+    const talksSnapshot = await getDocs(collection(db, "assemblies", assemblyId, "talks"));
+    if (talksSnapshot.empty) return 0;
+
+    const batch = writeBatch(db);
+    talksSnapshot.docs.forEach((talkDoc) => {
+        batch.delete(talkDoc.ref);
+    });
+    await batch.commit();
+    return talksSnapshot.size;
+};
+
 // ─── SPEAKERS ────────────────────────────────────────────
 export const getSpeakers = async () => {
     const q = query(collection(db, "speakers"), orderBy("name", "asc"));
@@ -232,3 +244,4 @@ export const updateSpeaker = async (id, data) => {
 export const deleteSpeaker = async (id) => {
     return deleteDoc(doc(db, "speakers", id));
 };
+
