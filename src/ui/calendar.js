@@ -1,29 +1,6 @@
-import { addDays, format, parseISO, startOfMonth, endOfMonth, getDay, addMonths, subMonths } from "date-fns";
+import { addDays, format, parseISO, addMonths, subMonths } from "date-fns";
+import { getServiceWeeks } from "../shared/calendar.js";
 import { getActivitiesForMonth, updateActivity, getLastTwoVisitsBefore } from "../db.js";
-
-const getServiceWeeks = (monthDate, rangeMonths = 1) => {
-    const mStart = startOfMonth(monthDate);
-    const mEnd = endOfMonth(addMonths(monthDate, rangeMonths - 1));
-    const weeks = [];
-
-    // Find the first Tuesday on or before the start of the month
-    let cursor = new Date(mStart);
-    const dayOfWeek = getDay(cursor); // 0=Sun … 6=Sat
-    // We want Tuesday (2). Calculate offset to previous Tuesday.
-    const offsetToTuesday = (dayOfWeek < 2) ? -(dayOfWeek + 5) : -(dayOfWeek - 2);
-    cursor = addDays(cursor, offsetToTuesday);
-
-    // Walk forward in 7-day increments, collecting weeks whose range overlaps the month
-    while (cursor <= mEnd) {
-        const weekEnd = addDays(cursor, 5); // Sunday
-        // Include if the week overlaps the month at all
-        if (weekEnd >= mStart && cursor <= mEnd) {
-            weeks.push(new Date(cursor));
-        }
-        cursor = addDays(cursor, 7);
-    }
-    return weeks;
-};
 
 export const renderCalendarView = async (container, options) => {
     const currentMonth = options.getCurrentMonth();
@@ -412,3 +389,4 @@ const loadMonthActivities = async (weeks, options) => {
     }
     return count;
 };
+

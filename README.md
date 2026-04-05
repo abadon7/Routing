@@ -69,3 +69,38 @@ Use the manual smoke checklist in `docs/manual-test-checklist.md` to verify the 
 - Google sign-in must be enabled in Firebase Authentication.
 - Firestore collections used by the app include `activities`, `congregations`, `assemblies`, and `speakers`.
 - Security rules should be reviewed carefully before multi-user deployment.
+
+## MCP calendar server
+
+The repository now includes a local MCP server that exposes read-only calendar consultation tools for an AI agent.
+
+### Additional local configuration
+
+Add this value to your local `.env` file for MCP use:
+
+- `MCP_CALENDAR_USER_UID`
+
+This should be the Firebase Auth user UID whose calendar data the MCP server should read.
+
+The MCP server now uses Firebase Admin SDK, so it also needs admin credentials. You can configure either option:
+
+- `FIREBASE_ADMIN_SERVICE_ACCOUNT_PATH`
+- or the trio `FIREBASE_ADMIN_PROJECT_ID`, `FIREBASE_ADMIN_CLIENT_EMAIL`, and `FIREBASE_ADMIN_PRIVATE_KEY`
+
+A service account JSON path is the simplest option for local use.
+
+### Start the MCP server
+
+```bash
+npm run mcp:calendar
+```
+
+The server runs over stdio and is intended to be registered in a local MCP-capable client.
+
+### MCP tools
+
+- `calendar_list_weeks`
+- `calendar_get_week`
+- `calendar_summary`
+- `calendar_search`
+
