@@ -102,7 +102,7 @@ export const getAppShellMarkup = ({ currentUser, currentView, currentDesign, sid
        </div>
 
       <main class="flex-1 flex flex-col min-w-0 overflow-hidden relative transition-colors duration-300">
-         <header class="h-16 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between px-6 md:px-8 transition-colors duration-300 ${currentDesign === 'foundation' ? 'foundation-header' : ''}">
+         <header class="hidden md:flex h-16 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 items-center justify-between px-6 md:px-8 transition-colors duration-300 ${currentDesign === 'foundation' ? 'foundation-header' : ''}">
              <div class="flex-1 max-w-lg">
                  <div class="relative">
                      <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -129,8 +129,9 @@ export const getAppShellMarkup = ({ currentUser, currentView, currentDesign, sid
              </div>
          </header>
 
-         <div class="flex-1 overflow-y-auto p-6 md:p-8" id="main-content"></div>
+         <div class="flex-1 overflow-y-auto p-6 pt-20 md:p-8 md:pt-8" id="main-content"></div>
       </main>
     </div>
     <div id="modal-container" class="fixed inset-0 bg-black/40 z-50 flex items-center justify-center transition-opacity" style="display:none"></div>
   `;
+
