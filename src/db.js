@@ -1,5 +1,6 @@
 import { collection, addDoc, getDocs, deleteDoc, updateDoc, doc, getDoc, query, where, orderBy, limit, Timestamp, writeBatch } from "firebase/firestore";
 import { db } from "./firebase";
+import { getStableServiceWeekDate } from "./shared/calendar.js";
 
 // Congregations
 export const getCongregations = async () => {
@@ -45,7 +46,7 @@ export const addActivity = async (activityData) => {
     // activityData: week_start (Date), type, congregation_id, congregationName, notes, user_id
     return addDoc(collection(db, "activities"), {
         ...activityData,
-        week_start: Timestamp.fromDate(activityData.week_start)
+        week_start: Timestamp.fromDate(getStableServiceWeekDate(activityData.week_start))
     });
 };
 
@@ -56,7 +57,7 @@ export const deleteActivity = async (activityId) => {
 export const updateActivity = async (activityId, data) => {
     const updateData = { ...data };
     if (updateData.week_start instanceof Date) {
-        updateData.week_start = Timestamp.fromDate(updateData.week_start);
+        updateData.week_start = Timestamp.fromDate(getStableServiceWeekDate(updateData.week_start));
     }
     return updateDoc(doc(db, "activities", activityId), updateData);
 };

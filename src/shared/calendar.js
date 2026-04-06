@@ -23,6 +23,22 @@ export const getServiceWeeks = (monthDate, rangeMonths = 1) => {
 
 export const getWeekKey = (date) => format(date, 'yyyy-MM-dd');
 
+export const getWeekKeyUtc = (date) => {
+    if (!date) return null;
+    const year = date.getUTCFullYear();
+    const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(date.getUTCDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+};
+
+export const getStableServiceWeekDate = (value) => {
+    const date = value instanceof Date ? value : new Date(value);
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    const day = date.getDate();
+    return new Date(Date.UTC(year, month, day, 12, 0, 0, 0));
+};
+
 export const getWeekRange = (weekStart) => ({
     week_start: getWeekKey(weekStart),
     week_end: getWeekKey(addDays(weekStart, 5))
@@ -42,7 +58,7 @@ export const normalizeActivityRecord = (activity) => {
 
     return {
         id: activity.id,
-        week_start: getWeekKey(weekStart),
+        week_start: getWeekKeyUtc(weekStart),
         type: activity.type || '',
         congregationName: activity.congregationName || '',
         notes: activity.notes || ''

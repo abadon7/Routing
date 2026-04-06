@@ -1,5 +1,5 @@
 import { addDays, format, parseISO, addMonths, subMonths } from "date-fns";
-import { getServiceWeeks } from "../shared/calendar.js";
+import { getServiceWeeks, getStableServiceWeekDate, getWeekKeyUtc } from "../shared/calendar.js";
 import { getActivitiesForMonth, updateActivity, getLastTwoVisitsBefore } from "../db.js";
 
 export const renderCalendarView = async (container, options) => {
@@ -187,7 +187,7 @@ export const renderCalendarView = async (container, options) => {
             // Order by date as per weeks
             const activityMap = {};
             activities.forEach(a => {
-                const key = format(a.week_start.toDate(), 'yyyy-MM-dd');
+                const key = getWeekKeyUtc(a.week_start.toDate());
                 activityMap[key] = a;
             });
 
@@ -263,7 +263,7 @@ export const renderCalendarView = async (container, options) => {
                 const activityInfo = JSON.parse(draggedActivityData);
                 const targetDate = parseISO(targetWeekKey);
                 try {
-                    await updateActivity(activityInfo.id, { week_start: targetDate });
+                    await updateActivity(activityInfo.id, { week_start: getStableServiceWeekDate(targetDate) });
                     renderCalendarView(container, options);
                 } catch (err) {
                     console.error('Error updating activity date:', err);
@@ -302,7 +302,7 @@ const loadMonthActivities = async (weeks, options) => {
         // Map activities by week_start key
         const activityMap = {};
         activities.forEach(a => {
-            const key = format(a.week_start.toDate(), 'yyyy-MM-dd');
+            const key = getWeekKeyUtc(a.week_start.toDate());
             activityMap[key] = a;
         });
 
