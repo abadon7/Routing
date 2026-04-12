@@ -97,7 +97,24 @@ export const renderAssemblyDetailsView = async (
             </div>
 
             <!-- Stats Cards -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
+            <div class="space-y-4">
+                <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                    <div>
+                        <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Trackers</p>
+                        <p id="stats-scope-label" class="text-sm text-slate-500 dark:text-slate-400">Showing totals for ${assembly.eventType === "Regional Convention (3 Days)" ? `Day ${currentDay}` : "this assembly"}.</p>
+                    </div>
+                    ${
+                        assembly.eventType === "Regional Convention (3 Days)"
+                            ? `
+                    <div class="inline-flex items-center gap-1 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-900/80 p-1 shadow-sm">
+                        <button type="button" class="stats-scope-btn inline-flex items-center rounded-xl px-3 py-2 text-xs font-bold transition-colors bg-blue-600 text-white shadow-sm" data-scope="day">This Day</button>
+                        <button type="button" class="stats-scope-btn inline-flex items-center rounded-xl px-3 py-2 text-xs font-bold transition-colors text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800" data-scope="all">All Days</button>
+                    </div>
+                    `
+                            : ""
+                    }
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
                 <!-- Total Talks -->
                 <div class="bg-gradient-to-br from-white to-slate-50 dark:from-slate-900 dark:to-slate-800/80 px-6 py-6 rounded-2xl border border-slate-200/80 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
                     <div class="absolute top-0 right-0 w-24 h-24 bg-blue-500/5 dark:bg-blue-400/5 rounded-full blur-2xl -mr-8 -mt-8"></div>
@@ -148,6 +165,7 @@ export const renderAssemblyDetailsView = async (
                         </div>
                     </div>
                 </div>
+                </div>
             </div>
 
             <!-- Program Chairmen -->
@@ -155,7 +173,7 @@ export const renderAssemblyDetailsView = async (
                 <div class="px-4 py-4 md:px-6 border-b border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 flex items-center justify-between gap-3">
                     <div>
                         <h3 class="text-base md:text-lg font-bold text-slate-900 dark:text-white">Program Chairmen</h3>
-                        <p class="text-xs md:text-sm text-slate-500 dark:text-slate-400">Assign the morning and afternoon chairmen for ${assembly.eventType === "Regional Convention (3 Days)" ? `Day ${currentDay}` : "this assembly"}.</p>
+                        <p id="chairmen-subtitle" class="text-xs md:text-sm text-slate-500 dark:text-slate-400">Assign the morning and afternoon chairmen for ${assembly.eventType === "Regional Convention (3 Days)" ? `Day ${currentDay}` : "this assembly"}.</p>
                     </div>
                     <button id="edit-chairmen-btn" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors bg-white/90 dark:bg-slate-900/80">
                         <span class="material-symbols-outlined text-[18px]">edit_square</span>
@@ -174,9 +192,8 @@ export const renderAssemblyDetailsView = async (
                             </div>
                         </div>
                         <div class="space-y-2">
-                            <p class="text-base font-bold text-slate-900 dark:text-white">${morningChairman.speakerName || morningChairman.manualName || "Not assigned yet"}</p>
-
-                            ${morningChairman.manualName || morningChairman.speakerName ? "" : '<p class="text-sm text-slate-500 dark:text-slate-400"> Choose a speaker or enter a manual name.</p>'}
+                            <p id="morning-chairman-name" class="text-base font-bold text-slate-900 dark:text-white">${morningChairman.speakerName || morningChairman.manualName || "Not assigned yet"}</p>
+                            <p id="morning-chairman-helper" class="text-sm text-slate-500 dark:text-slate-400 ${morningChairman.manualName || morningChairman.speakerName ? "hidden" : ""}">Choose a speaker or enter a manual name.</p>
                         </div>
                     </div>
                     <div class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white/90 dark:bg-slate-950/40 p-5 shadow-sm">
@@ -190,8 +207,8 @@ export const renderAssemblyDetailsView = async (
                             </div>
                         </div>
                         <div class="space-y-2">
-                            <p class="text-base font-bold text-slate-900 dark:text-white">${afternoonChairman.speakerName || afternoonChairman.manualName || "Not assigned yet"}</p>
-                            ${afternoonChairman.manualName || afternoonChairman.speakerName ? "" : '<p class="text-sm text-slate-500 dark:text-slate-400"> Choose a speaker or enter a manual name.</p>'}
+                            <p id="afternoon-chairman-name" class="text-base font-bold text-slate-900 dark:text-white">${afternoonChairman.speakerName || afternoonChairman.manualName || "Not assigned yet"}</p>
+                            <p id="afternoon-chairman-helper" class="text-sm text-slate-500 dark:text-slate-400 ${afternoonChairman.manualName || afternoonChairman.speakerName ? "hidden" : ""}">Choose a speaker or enter a manual name.</p>
                         </div>
                     </div>
                 </div>
@@ -235,13 +252,13 @@ export const renderAssemblyDetailsView = async (
                     <table class="w-full text-left">
                         <thead>
                             <tr class="bg-slate-50/80 dark:bg-slate-800/80 text-slate-500 dark:text-slate-400 text-[10px] font-bold uppercase tracking-wider">
-                                 <th class="px-3 py-3">Day</th>
-                                 <th class="px-3 py-3">Time</th>
-                                 <th class="px-3 py-3">Outline</th>
-                                 <th class="px-3 py-3">Theme</th>
-                                 <th class="px-3 py-3">Speaker</th>
-                                 <th class="px-3 py-3">Dur.</th>
-                                 <th class="px-3 py-3">Status</th>
+                                 <th class="px-3 py-3"><button type="button" class="schedule-sort-btn inline-flex items-center gap-1 hover:text-slate-800 dark:hover:text-slate-200 transition-colors" data-sort-key="day">Day <span class="schedule-sort-indicator text-[11px]" data-sort-indicator="day"></span></button></th>
+                                 <th class="px-3 py-3"><button type="button" class="schedule-sort-btn inline-flex items-center gap-1 hover:text-slate-800 dark:hover:text-slate-200 transition-colors" data-sort-key="startTime">Time <span class="schedule-sort-indicator text-[11px]" data-sort-indicator="startTime"></span></button></th>
+                                 <th class="px-3 py-3"><button type="button" class="schedule-sort-btn inline-flex items-center gap-1 text-slate-800 dark:text-slate-100 hover:text-slate-900 dark:hover:text-white transition-colors" data-sort-key="outline">Outline <span class="schedule-sort-indicator text-[11px]" data-sort-indicator="outline">▲</span></button></th>
+                                 <th class="px-3 py-3"><button type="button" class="schedule-sort-btn inline-flex items-center gap-1 hover:text-slate-800 dark:hover:text-slate-200 transition-colors" data-sort-key="theme">Theme <span class="schedule-sort-indicator text-[11px]" data-sort-indicator="theme"></span></button></th>
+                                 <th class="px-3 py-3"><button type="button" class="schedule-sort-btn inline-flex items-center gap-1 hover:text-slate-800 dark:hover:text-slate-200 transition-colors" data-sort-key="speakerName">Speaker <span class="schedule-sort-indicator text-[11px]" data-sort-indicator="speakerName"></span></button></th>
+                                 <th class="px-3 py-3"><button type="button" class="schedule-sort-btn inline-flex items-center gap-1 hover:text-slate-800 dark:hover:text-slate-200 transition-colors" data-sort-key="duration">Dur. <span class="schedule-sort-indicator text-[11px]" data-sort-indicator="duration"></span></button></th>
+                                 <th class="px-3 py-3"><button type="button" class="schedule-sort-btn inline-flex items-center gap-1 hover:text-slate-800 dark:hover:text-slate-200 transition-colors" data-sort-key="status">Status <span class="schedule-sort-indicator text-[11px]" data-sort-indicator="status"></span></button></th>
                                  <th class="px-3 py-3 text-right"></th>
                              </tr>
                         </thead>
@@ -301,68 +318,174 @@ export const renderAssemblyDetailsView = async (
                         : "TBD";
         }
 
-        // Populate Stats
-        document.getElementById("stat-total-talks").textContent = talks.length;
-        const confirmed = talks.filter((t) => t.status === "Confirmed").length;
-        document.getElementById("stat-confirmed-speakers").textContent =
-            confirmed;
-        document.getElementById("stat-pending-assignments").textContent =
-            talks.length - confirmed;
-
-        // Filter talks by day if it's a 3-day event
-        let displayedTalks = talks;
-        if (assembly.eventType === "Regional Convention (3 Days)") {
-            displayedTalks = talks.filter((t) => (t.day || 1) === currentDay);
-        }
-
-        // Sort by Time
-        displayedTalks.sort((a, b) =>
-            (a.startTime || "00:00").localeCompare(b.startTime || "00:00"),
-        );
-
-        // Populate Table
+        let activeDay = currentDay;
+        let scheduleSort = { key: "outline", direction: "asc" };
+        let statsScope = "day";
         const list = document.getElementById("talks-list");
         const colSpan = 8;
-        if (displayedTalks.length === 0) {
-            list.innerHTML = `<tr><td colspan="${colSpan}" class="px-6 py-8 text-center text-slate-500 italic">No talks scheduled yet for ${assembly.eventType === "Regional Convention (3 Days)" ? `Day ${currentDay}` : "this assembly"}. Click "Add New Talk" to get started.</td></tr>`;
-        } else {
-            list.innerHTML = displayedTalks
-                .map((t) => {
-                    const isLinked = !!t.speakerId;
-                    const speakerInitials = t.speakerName
-                        ? t.speakerName
-                              .trim()
-                              .split(" ")
-                              .map((n) => n[0])
-                              .join("")
-                              .substring(0, 2)
-                              .toUpperCase()
-                        : "?";
-                    const visitorBadge = t.isVisitor
-                        ? '<span class="inline-block w-2 h-2 rounded-full bg-emerald-500" title="Visitor"></span>'
-                        : '<span class="inline-block w-2 h-2 rounded-full bg-slate-200 dark:bg-slate-600"></span>';
-                    const betheliteBadge = t.isBethelite
-                        ? '<span class="inline-block w-2 h-2 rounded-full bg-purple-500" title="Bethelite"></span>'
-                        : '<span class="inline-block w-2 h-2 rounded-full bg-slate-200 dark:bg-slate-600"></span>';
+        const compareScheduleValues = (a, b, key) => {
+            const getValue = (talk) => {
+                if (key === "theme") return talk.theme || talk.title || "";
+                if (key === "duration") return Number(talk.duration || 0);
+                if (key === "day") return Number(talk.day || 1);
+                return talk[key] || "";
+            };
+            const left = getValue(a);
+            const right = getValue(b);
 
-                    const statusColors = {
-                        Confirmed:
-                            "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400",
-                        Pending:
-                            "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400",
-                        Cancelled:
-                            "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400",
-                    };
-                    const statusClass =
-                        statusColors[t.status] || statusColors["Pending"];
-                    const statusDot =
-                        t.status === "Confirmed"
-                            ? "bg-emerald-500"
-                            : t.status === "Cancelled"
-                              ? "bg-red-500"
-                              : "bg-amber-500";
+            if (typeof left === "number" || typeof right === "number") {
+                return Number(left || 0) - Number(right || 0);
+            }
+            return String(left).localeCompare(String(right), undefined, {
+                numeric: true,
+                sensitivity: "base",
+            });
+        };
 
-                    return `
+        const updateScheduleSortButtons = () => {
+            document.querySelectorAll(".schedule-sort-btn").forEach((button) => {
+                const key = button.dataset.sortKey;
+                const isActive = key === scheduleSort.key;
+                button.classList.toggle("text-slate-800", isActive);
+                button.classList.toggle("dark:text-slate-100", isActive);
+                button.classList.toggle("text-slate-500", !isActive);
+                button.classList.toggle("dark:text-slate-400", !isActive);
+                const indicator = document.querySelector(
+                    `[data-sort-indicator="${key}"]`,
+                );
+                if (indicator) {
+                    indicator.textContent = isActive
+                        ? scheduleSort.direction === "asc"
+                            ? "▲"
+                            : "▼"
+                        : "";
+                }
+            });
+        };
+
+        const getDisplayedTalks = (selectedDay = activeDay) => {
+            const dayTalks =
+                assembly.eventType === "Regional Convention (3 Days)"
+                    ? talks.filter((t) => (t.day || 1) === selectedDay)
+                    : talks;
+
+            return [...dayTalks].sort((a, b) => {
+                const primary = compareScheduleValues(a, b, scheduleSort.key);
+                if (primary !== 0) {
+                    return scheduleSort.direction === "asc" ? primary : -primary;
+                }
+
+                const fallbackTime = compareScheduleValues(a, b, "startTime");
+                if (fallbackTime !== 0) {
+                    return fallbackTime;
+                }
+
+                return compareScheduleValues(a, b, "outline");
+            });
+        };
+
+        const renderProgramChairmen = (selectedDay = activeDay) => {
+            const chairmenByDay = assembly.chairmenByDay || {};
+            const currentChairmen = chairmenByDay[String(selectedDay)] || {};
+            const morning = currentChairmen.morning || {};
+            const afternoon = currentChairmen.afternoon || {};
+            const subtitle = document.getElementById("chairmen-subtitle");
+            const morningName = document.getElementById("morning-chairman-name");
+            const morningHelper = document.getElementById("morning-chairman-helper");
+            const afternoonName = document.getElementById("afternoon-chairman-name");
+            const afternoonHelper = document.getElementById("afternoon-chairman-helper");
+            const hasMorning = Boolean(morning.speakerName || morning.manualName);
+            const hasAfternoon = Boolean(afternoon.speakerName || afternoon.manualName);
+
+            if (subtitle) {
+                subtitle.textContent = `Assign the morning and afternoon chairmen for ${assembly.eventType === "Regional Convention (3 Days)" ? `Day ${selectedDay}` : "this assembly"}.`;
+            }
+            if (morningName) {
+                morningName.textContent =
+                    morning.speakerName || morning.manualName || "Not assigned yet";
+            }
+            if (morningHelper) {
+                morningHelper.classList.toggle("hidden", hasMorning);
+            }
+            if (afternoonName) {
+                afternoonName.textContent =
+                    afternoon.speakerName || afternoon.manualName || "Not assigned yet";
+            }
+            if (afternoonHelper) {
+                afternoonHelper.classList.toggle("hidden", hasAfternoon);
+            }
+        };
+
+        const getStatsTalks = (selectedDay = activeDay) =>
+            statsScope === "all" ? talks : getDisplayedTalks(selectedDay);
+
+        const updateStatsScopeButtons = () => {
+            document.querySelectorAll(".stats-scope-btn").forEach((button) => {
+                const isActive = button.dataset.scope === statsScope;
+                button.className = `stats-scope-btn inline-flex items-center rounded-xl px-3 py-2 text-xs font-bold transition-colors ${isActive ? "bg-blue-600 text-white shadow-sm" : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"}`;
+            });
+        };
+
+        const renderStats = (selectedDay = activeDay) => {
+            const statsTalks = getStatsTalks(selectedDay);
+            const confirmed = statsTalks.filter(
+                (t) => t.status === "Confirmed",
+            ).length;
+            const scopeLabel = document.getElementById("stats-scope-label");
+            if (scopeLabel) {
+                const labelTarget =
+                    statsScope === "all"
+                        ? "all days"
+                        : assembly.eventType === "Regional Convention (3 Days)"
+                          ? `Day ${selectedDay}`
+                          : "this assembly";
+                scopeLabel.textContent = `Showing totals for ${labelTarget}.`;
+            }
+            document.getElementById("stat-total-talks").textContent =
+                statsTalks.length;
+            document.getElementById("stat-confirmed-speakers").textContent =
+                confirmed;
+            document.getElementById("stat-pending-assignments").textContent =
+                statsTalks.length - confirmed;
+            updateStatsScopeButtons();
+        };
+        const renderDaySchedule = (selectedDay = activeDay) => {
+            const displayedTalks = getDisplayedTalks(selectedDay);
+
+            if (displayedTalks.length === 0) {
+                list.innerHTML = `<tr><td colspan="${colSpan}" class="px-6 py-8 text-center text-slate-500 italic">No talks scheduled yet for ${assembly.eventType === "Regional Convention (3 Days)" ? `Day ${selectedDay}` : "this assembly"}. Click "Add New Talk" to get started.</td></tr>`;
+            } else {
+                list.innerHTML = displayedTalks
+                    .map((t) => {
+                        const isLinked = !!t.speakerId;
+                        const speakerInitials = t.speakerName
+                            ? t.speakerName
+                                  .trim()
+                                  .split(" ")
+                                  .map((n) => n[0])
+                                  .join("")
+                                  .substring(0, 2)
+                                  .toUpperCase()
+                            : "?";
+
+                        const statusColors = {
+                            Confirmed:
+                                "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400",
+                            Pending:
+                                "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400",
+                            Cancelled:
+                                "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400",
+                        };
+                        const statusClass =
+                            statusColors[t.status] || statusColors["Pending"];
+                        const statusDot =
+                            t.status === "Confirmed"
+                                ? "bg-emerald-500"
+                                : t.status === "Cancelled"
+                                  ? "bg-red-500"
+                                  : "bg-amber-500";
+
+                        return `
                 <tr class="talk-row hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors cursor-pointer border-b border-slate-100 dark:border-slate-800/60" data-id="${t.id}">
                     <td class="px-3 py-3 text-xs text-slate-500 font-medium whitespace-nowrap">${assembly.eventType === "Regional Convention (3 Days)" ? `Day ${t.day || 1}` : "—"}</td>
                     <td class="px-3 py-3 text-xs font-semibold text-slate-800 dark:text-white whitespace-nowrap">${t.startTime || "—"}</td>
@@ -396,9 +519,15 @@ export const renderAssemblyDetailsView = async (
                     </td>
                 </tr>
                 `;
-                })
-                .join("");
-        }
+                    })
+                    .join("");
+            }
+        };
+
+        renderProgramChairmen(activeDay);
+        updateScheduleSortButtons();
+        renderStats(activeDay);
+        renderDaySchedule(activeDay);
 
         // Show content
         document.getElementById("loading-details").classList.add("hidden");
@@ -411,7 +540,7 @@ export const renderAssemblyDetailsView = async (
         document
             .getElementById("generate-report-btn")
             ?.addEventListener("click", () =>
-                renderAssemblySessionReportModal(assembly, talks, currentDay),
+                renderAssemblySessionReportModal(assembly, talks, activeDay),
             );
         document
             .getElementById("start-assembly-btn")
@@ -420,14 +549,14 @@ export const renderAssemblyDetailsView = async (
                     container,
                     assembly,
                     talks,
-                    currentDay,
+                    activeDay,
                     options,
                 ),
             );
         document
             .getElementById("edit-chairmen-btn")
             ?.addEventListener("click", () =>
-                renderChairmenModal(container, assembly, currentDay, options),
+                renderChairmenModal(container, assembly, activeDay, options),
             );
         document
             .getElementById("clear-talks-btn")
@@ -451,7 +580,7 @@ export const renderAssemblyDetailsView = async (
                     await updateAssembly(activeAssemblyId, {
                         liveSession: null,
                     });
-                    renderAssemblyDetailsView(container, currentDay, options);
+                    renderAssemblyDetailsView(container, activeDay, options);
                 } catch (error) {
                     clearButton.disabled = false;
                     clearButton.innerHTML =
@@ -465,16 +594,42 @@ export const renderAssemblyDetailsView = async (
             document.querySelectorAll(".day-tab-btn").forEach((btn) => {
                 btn.addEventListener("click", () => {
                     const selectedDay = parseInt(btn.dataset.day);
-                    if (selectedDay !== currentDay) {
-                        renderAssemblyDetailsView(
-                            container,
-                            selectedDay,
-                            options,
-                        );
+                    if (selectedDay !== activeDay) {
+                        activeDay = selectedDay;
+                        document.querySelectorAll(".day-tab-btn").forEach((tab) => {
+                            const isActive = Number(tab.dataset.day) === activeDay;
+                            tab.className = `day-tab-btn px-4 py-2 rounded-t-lg font-bold text-sm transition-colors border-b-2 ${isActive ? "text-blue-600 dark:text-blue-400 border-blue-600 font-bold bg-white dark:bg-slate-900" : "text-slate-500 dark:text-slate-400 border-transparent hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/50"}`;
+                        });
+                        renderProgramChairmen(activeDay);
+                        renderStats(activeDay);
+                        renderDaySchedule(activeDay);
                     }
                 });
             });
         }
+
+        document.querySelectorAll(".schedule-sort-btn").forEach((button) => {
+            button.addEventListener("click", () => {
+                const nextKey = button.dataset.sortKey || "outline";
+                if (scheduleSort.key === nextKey) {
+                    scheduleSort.direction =
+                        scheduleSort.direction === "asc" ? "desc" : "asc";
+                } else {
+                    scheduleSort = { key: nextKey, direction: "asc" };
+                }
+                updateScheduleSortButtons();
+                renderDaySchedule(activeDay);
+            });
+        });
+
+        document.querySelectorAll(".stats-scope-btn").forEach((button) => {
+            button.addEventListener("click", () => {
+                const nextScope = button.dataset.scope || "day";
+                if (nextScope === statsScope) return;
+                statsScope = nextScope;
+                renderStats(activeDay);
+            });
+        });
 
         // Add/Edit talk modals
         document
@@ -484,7 +639,7 @@ export const renderAssemblyDetailsView = async (
                     container,
                     activeAssemblyId,
                     null,
-                    currentDay,
+                    activeDay,
                     options,
                 ),
             );
@@ -494,7 +649,7 @@ export const renderAssemblyDetailsView = async (
                 renderBulkImportTalksModal(
                     container,
                     activeAssemblyId,
-                    currentDay,
+                    activeDay,
                     options,
                 ),
             );
@@ -527,13 +682,7 @@ export const renderAssemblyDetailsView = async (
         const allStatusClasses = Object.values(statusClassMap).flat();
         const allStatusDots = Object.values(statusDotMap);
         const syncStatusSummary = () => {
-            const confirmedCount = talks.filter(
-                (t) => t.status === "Confirmed",
-            ).length;
-            document.getElementById("stat-confirmed-speakers").textContent =
-                confirmedCount;
-            document.getElementById("stat-pending-assignments").textContent =
-                talks.length - confirmedCount;
+            renderStats(activeDay);
         };
 
         // Event delegation for table buttons
@@ -590,7 +739,7 @@ export const renderAssemblyDetailsView = async (
                         container,
                         activeAssemblyId,
                         talk,
-                        currentDay,
+                        activeDay,
                         options,
                     );
                 return;
@@ -1732,7 +1881,7 @@ const renderAddTalkModal = async (
                 try {
                     await deleteTalk(assemblyId, existingTalk.id);
                     closeModal();
-                    renderAssemblyDetailsView(container, currentDay, options);
+                    renderAssemblyDetailsView(container, activeDay, options);
                 } catch (e) {
                     alert("Error deleting: " + e.message);
                 }
@@ -1857,18 +2006,18 @@ const renderBulkImportTalksModal = async (
         <div class="p-6 space-y-4 overflow-y-auto">
             <div class="rounded-xl border border-blue-100 bg-blue-50/70 px-4 py-3 text-sm text-slate-700 dark:border-blue-900/50 dark:bg-slate-800/80 dark:text-slate-200">
                 <p class="font-semibold text-slate-900 dark:text-white">Column Order</p>
-                <p class="mt-1">1. Day  2. Time  3. Outline  4. Theme  5. Source  6. Date Assigned  7. Speaker Name  8. Circuit  9. Congregation  10. Mobile Phone  11. Home Phone  12. Email  13. Address  14. Visitor (Y/N)  15. Bethelite (Y/N)</p>
-                <p class="mt-2 text-xs text-slate-500 dark:text-slate-400">Columns after Theme are optional. The Day column uses a number like 1/2/3 for RC, or any number you want for CA.</p>
+                <p class="mt-1">1. Day  2. Time  3. Outline  4. Duration  5. Theme  6. Source  7. Date Assigned  8. Speaker Name  9. Circuit  10. Congregation  11. Mobile Phone  12. Home Phone  13. Email  14. Address  15. Visitor (Y/N)  16. Bethelite (Y/N)  17. Status or Confirmed (Y/N)</p>
+                <p class="mt-2 text-xs text-slate-500 dark:text-slate-400">Columns after Theme are optional. The Day column uses a number like 1/2/3 for RC, or any number you want for CA. If the last column is omitted, talks import as Pending.</p>
             </div>
             <div class="space-y-1.5">
                 <label class="text-sm font-semibold text-slate-700 dark:text-slate-300">Paste data</label>
-                <textarea id="bulk-talks-text" rows="10" class="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 text-sm text-slate-900 dark:text-white font-mono focus:ring-2 focus:ring-blue-500 outline-none resize-y" placeholder="1	09:30	12	Keep Following Jehovah	Psalm 25:4	2026-03-21	John Doe	Circuit 5	Central Congregation	555-1111	555-2222	john@example.com	123 Main St	Y	N"></textarea>
+                <textarea id="bulk-talks-text" rows="10" class="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 text-sm text-slate-900 dark:text-white font-mono focus:ring-2 focus:ring-blue-500 outline-none resize-y" placeholder="1	09:30	12	30	Keep Following Jehovah	Psalm 25:4	2026-03-21	John Doe	Circuit 5	Central Congregation	555-1111	555-2222	john@example.com	123 Main St	Y	N	Confirmed"></textarea>
             </div>
             <div id="bulk-talks-preview" class="hidden">
                 <h4 class="text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Preview (<span id="bulk-talks-count">0</span> talks)</h4>
                 <div class="max-h-56 overflow-y-auto rounded-lg border border-slate-200 dark:border-slate-700">
                     <table class="w-full text-left text-sm">
-                        <thead><tr class="bg-slate-50 dark:bg-slate-700/50"><th class="px-3 py-2 text-xs font-bold text-slate-500 uppercase">Day</th><th class="px-3 py-2 text-xs font-bold text-slate-500 uppercase">Time</th><th class="px-3 py-2 text-xs font-bold text-slate-500 uppercase">Outline</th><th class="px-3 py-2 text-xs font-bold text-slate-500 uppercase">Theme</th><th class="px-3 py-2 text-xs font-bold text-slate-500 uppercase">Speaker</th></tr></thead>
+                        <thead><tr class="bg-slate-50 dark:bg-slate-700/50"><th class="px-3 py-2 text-xs font-bold text-slate-500 uppercase">Day</th><th class="px-3 py-2 text-xs font-bold text-slate-500 uppercase">Time</th><th class="px-3 py-2 text-xs font-bold text-slate-500 uppercase">Outline</th><th class="px-3 py-2 text-xs font-bold text-slate-500 uppercase">Duration</th><th class="px-3 py-2 text-xs font-bold text-slate-500 uppercase">Theme</th><th class="px-3 py-2 text-xs font-bold text-slate-500 uppercase">Speaker</th><th class="px-3 py-2 text-xs font-bold text-slate-500 uppercase">Status</th></tr></thead>
                         <tbody id="bulk-talks-preview-body" class="divide-y divide-slate-100 dark:divide-slate-700"></tbody>
                     </table>
                 </div>
@@ -1911,6 +2060,20 @@ const renderBulkImportTalksModal = async (
         return line.split(",").map((part) => part.trim());
     };
 
+    const parseBulkStatus = (value) => {
+        const normalized = (value || "").trim().toLowerCase();
+        if (!normalized) return "Pending";
+        if (["confirmed", "confirm", "yes", "y", "true", "1"].includes(normalized)) {
+            return "Confirmed";
+        }
+        if (["cancelled", "canceled", "cancel", "no", "n", "false", "0"].includes(normalized)) {
+            return "Cancelled";
+        }
+        if (normalized === "pending") {
+            return "Pending";
+        }
+        return "Pending";
+    };
     const parseBulkText = () => {
         const raw = document.getElementById("bulk-talks-text").value.trim();
         if (!raw) return [];
@@ -1924,24 +2087,26 @@ const renderBulkImportTalksModal = async (
                 const day = parseInt(parts[0], 10);
                 const startTime = parts[1] || "00:00";
                 const outline = parts[2] || "";
-                const theme = parts[3] || "";
-                const source = parts[4] || "";
-                const dateAssigned = parts[5] || "";
-                const speakerName = parts[6] || null;
-                const circuit = parts[7] || "";
-                const congregation = parts[8] || "";
-                const mobilePhone = parts[9] || "";
-                const homePhone = parts[10] || "";
-                const email = parts[11] || "";
-                const address = parts[12] || "";
-                const isVisitor = isTruthyFlag(parts[13]);
-                const isBethelite = isTruthyFlag(parts[14]);
+                const durationValue = parseInt(parts[3], 10);
+                const theme = parts[4] || "";
+                const source = parts[5] || "";
+                const dateAssigned = parts[6] || "";
+                const speakerName = parts[7] || null;
+                const circuit = parts[8] || "";
+                const congregation = parts[9] || "";
+                const mobilePhone = parts[10] || "";
+                const homePhone = parts[11] || "";
+                const email = parts[12] || "";
+                const address = parts[13] || "";
+                const isVisitor = isTruthyFlag(parts[14]);
+                const isBethelite = isTruthyFlag(parts[15]);
+                const status = parseBulkStatus(parts[16]);
 
                 if (!theme) {
                     return null;
                 }
 
-                return {
+                const talkData = {
                     day: Number.isFinite(day) ? day : currentDay,
                     startTime,
                     outline,
@@ -1959,8 +2124,14 @@ const renderBulkImportTalksModal = async (
                     address,
                     isVisitor,
                     isBethelite,
-                    status: speakerName ? "Confirmed" : "Pending",
+                    status,
                 };
+
+                if (Number.isFinite(durationValue)) {
+                    talkData.duration = durationValue;
+                }
+
+                return talkData;
             })
             .filter(Boolean);
     };
@@ -1994,8 +2165,9 @@ const renderBulkImportTalksModal = async (
                 <td class="px-3 py-1.5 text-slate-800 dark:text-slate-200 font-medium">${talk.day ?? "—"}</td>
                 <td class="px-3 py-1.5 text-slate-600 dark:text-slate-400">${talk.startTime || "—"}</td>
                 <td class="px-3 py-1.5 text-slate-600 dark:text-slate-400 font-mono">${talk.outline || "—"}</td>
+                <td class="px-3 py-1.5 text-slate-600 dark:text-slate-400">${talk.duration ?? "—"}</td>
                 <td class="px-3 py-1.5 text-slate-600 dark:text-slate-400 font-bold">${talk.theme}</td>
-                <td class="px-3 py-1.5 text-slate-600 dark:text-slate-400">${talk.speakerName || "—"}</td>
+                <td class="px-3 py-1.5 text-slate-600 dark:text-slate-400">${talk.speakerName || "—"}</td>\n                <td class="px-3 py-1.5 text-slate-600 dark:text-slate-400">${talk.status || "Pending"}</td>
             </tr>
         `,
                 )
@@ -2046,3 +2218,8 @@ const renderBulkImportTalksModal = async (
             }, 1200);
         });
 };
+
+
+
+
+
