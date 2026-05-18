@@ -10,12 +10,15 @@ import {
     deleteTalk,
     clearAssemblyTalks,
 } from "../db.js";
+import { renderSpeakerDetailsModal } from "./speaker-details.js";
+import { getStoredDesign } from "./preferences.js";
 
 export const renderAssemblyDetailsView = async (
     container,
     currentDay = 1,
     options,
 ) => {
+    const isTactician = getStoredDesign() === 'tactician';
     const activeAssemblyId = options.getActiveAssemblyId();
     if (!activeAssemblyId) {
         options.setView("assemblies");
@@ -28,7 +31,7 @@ export const renderAssemblyDetailsView = async (
     const morningChairman = currentDayChairmen.morning || {};
     const afternoonChairman = currentDayChairmen.afternoon || {};
     container.innerHTML = `
-    <div class="space-y-8 animate-fade-in-down">
+    <div class="space-y-8 animate-fade-in-down ${isTactician ? 'tactician-design' : ''}">
         <!-- Loading State -->
         <div id="loading-details" class="text-center py-12">
             <svg class="w-12 h-12 text-blue-500 animate-spin mx-auto" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
@@ -38,17 +41,65 @@ export const renderAssemblyDetailsView = async (
         <!-- Content (Hidden initially) -->
         <div id="details-content" class="hidden space-y-8">
             <!-- Header -->
-            <div class="relative overflow-hidden rounded-[28px] border border-slate-200/80 dark:border-slate-800 bg-gradient-to-br from-white via-slate-50 to-blue-50/70 dark:from-slate-900 dark:via-slate-900 dark:to-slate-950 shadow-sm">
+            <div class="${isTactician ? 'pb-4 border-b border-slate-100 dark:border-slate-800' : 'relative overflow-hidden rounded-[28px] border border-slate-200/80 dark:border-slate-800 bg-gradient-to-br from-white via-slate-50 to-blue-50/70 dark:from-slate-900 dark:via-slate-900 dark:to-slate-950 shadow-sm'}">
+                ${isTactician ? '' : `
                 <div class="absolute -top-16 right-0 h-40 w-40 rounded-full bg-blue-500/10 blur-3xl dark:bg-blue-400/10"></div>
                 <div class="absolute bottom-0 left-0 h-32 w-32 rounded-full bg-amber-400/10 blur-3xl dark:bg-amber-300/5"></div>
-                <div class="relative px-6 py-6 md:px-8 md:py-7">
+                `}
+                <div class="${isTactician ? 'relative' : 'relative px-6 py-6 md:px-8 md:py-7'}">
+                    ${isTactician ? `
+                    <!-- Tactician: Top bar with back + breadcrumb + action buttons -->
+                    <div class="flex items-center justify-between gap-4 mb-6">
+                        <div class="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
+                            <button id="back-to-assemblies" class="inline-flex items-center gap-1.5 hover:text-slate-900 dark:hover:text-white transition-colors font-medium">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+                                Assemblies
+                            </button>
+                            <span class="text-slate-300 dark:text-slate-600">/</span>
+                            <span id="asm-breadcrumb-name" class="font-semibold text-slate-700 dark:text-slate-300">Loading...</span>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <button id="clear-talks-btn" class="flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 rounded-full px-4 py-2 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+                                <span class="material-symbols-outlined text-[17px]">filter_list_off</span>
+                                <span>Clear</span>
+                            </button>
+                            <button id="generate-report-btn" class="flex items-center gap-2 text-sm font-bold text-orange-700 dark:text-orange-400 border border-orange-200 dark:border-orange-800/50 rounded-full px-4 py-2 hover:bg-orange-50 dark:hover:bg-orange-900/20 transition-colors">
+                                <span class="material-symbols-outlined text-[17px]">bar_chart</span>
+                                <span>Report</span>
+                            </button>
+                            <button id="start-assembly-btn" class="flex items-center gap-2 text-sm font-bold bg-orange-500 hover:bg-orange-600 text-white rounded-full px-5 py-2 shadow-sm transition-colors">
+                                <span class="material-symbols-outlined text-[17px]">play_arrow</span>
+                                <span>${assembly.liveSession && ["running", "paused"].includes(assembly.liveSession.status) && Number(assembly.liveSession.day || 1) === currentDay ? "Resume" : "Start"}</span>
+                            </button>
+                        </div>
+                    </div>
+                    <!-- Tactician: Title block -->
+                    <div class="space-y-3">
+                        <div class="flex flex-wrap items-center gap-2">
+                            <span class="inline-flex items-center rounded-full bg-orange-50 dark:bg-orange-900/30 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-orange-700 dark:text-orange-400">${assembly.eventType === "Regional Convention (3 Days)" ? "Regional Convention" : "Circuit Assembly"}</span>
+                            <span class="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] ${assembly.status === "Completed" ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" : assembly.status === "Draft" ? "bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300" : "bg-cyan-100 text-cyan-800 dark:bg-cyan-900/30 dark:text-cyan-300"}">${assembly.status || "Upcoming"}</span>
+                            ${assembly.liveSession && ["running", "paused"].includes(assembly.liveSession.status) && Number(assembly.liveSession.day || 1) === currentDay ? `<span class="inline-flex items-center gap-1.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em]"><span class="h-2 w-2 rounded-full ${assembly.liveSession.status === "running" ? "bg-blue-500 animate-pulse" : "bg-amber-400"}"></span>${assembly.liveSession.status === "running" ? "Live Session" : "Session Paused"}</span>` : ""}
+                        </div>
+                        <h2 id="asm-detail-theme" class="editorial-header !text-4xl md:!text-5xl !font-bold">Loading...</h2>
+                        <div class="flex flex-wrap items-center gap-5 text-sm text-slate-500 dark:text-slate-400">
+                            <span id="asm-detail-date" class="inline-flex items-center gap-1.5">
+                                <span class="material-symbols-outlined text-[17px] text-slate-400">calendar_today</span>
+                                <span class="font-medium">---</span>
+                            </span>
+                            <span id="asm-detail-location" class="inline-flex items-center gap-1.5">
+                                <span class="material-symbols-outlined text-[17px] text-slate-400">location_on</span>
+                                <span class="font-medium">---</span>
+                            </span>
+                        </div>
+                    </div>
+                    ` : `
                     <div class="flex flex-col xl:flex-row xl:items-start xl:justify-between gap-6">
                         <div class="min-w-0 flex-1">
-                            <div class="flex items-start gap-3">
-                                <button id="back-to-assemblies" class="mt-0.5 inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200/80 dark:border-slate-700/80 bg-white/90 dark:bg-slate-900/80 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:border-slate-300 dark:hover:border-slate-600 transition-colors shadow-sm shrink-0">
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+                            <div class="flex items-start gap-4">
+                                <button id="back-to-assemblies" class="mt-1 inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200/80 dark:border-slate-700/80 bg-white/90 dark:bg-slate-900/80 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:border-slate-300 dark:hover:border-slate-600 transition-colors shadow-sm shrink-0">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
                                 </button>
-                                <div class="min-w-0 space-y-4">
+                                <div class="min-w-0 space-y-4 w-full">
                                     <div class="flex flex-wrap items-center gap-2">
                                         <span class="inline-flex items-center rounded-full border border-slate-200/80 dark:border-slate-700/80 bg-white/80 dark:bg-slate-900/70 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">${assembly.eventType === "Regional Convention (3 Days)" ? "Regional Convention" : "Circuit Assembly"}</span>
                                         <span class="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] ${assembly.status === "Completed" ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" : assembly.status === "Draft" ? "bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300" : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"}">${assembly.status || "Upcoming"}</span>
@@ -73,104 +124,116 @@ export const renderAssemblyDetailsView = async (
                                 </div>
                             </div>
                         </div>
-                        <div class="xl:max-w-[320px] w-full xl:w-auto shrink-0">
+                        <div class="xl:max-w-[320px] w-full xl:w-auto shrink-0 flex items-end">
                             <div class="rounded-2xl border border-slate-200/80 dark:border-slate-700/80 bg-white/80 dark:bg-slate-900/70 p-3 shadow-sm backdrop-blur-sm">
                                 <p class="px-2 pb-2 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">Quick Actions</p>
                                 <div class="grid grid-cols-1 sm:grid-cols-3 xl:grid-cols-1 gap-2">
-                                    <button id="start-assembly-btn" class="flex items-center justify-center gap-1.5 px-4 py-3 rounded-xl text-sm font-bold bg-blue-600 text-white hover:bg-blue-700 transition-colors shadow-sm">
+                                    <button id="start-assembly-btn" class="bg-blue-600 hover:bg-blue-700 text-white shadow-sm rounded-xl px-4 py-3 flex items-center justify-center gap-1.5 text-sm font-bold transition-colors">
                                         <span class="material-symbols-outlined text-[18px]">play_circle</span>
-                                        ${assembly.liveSession && ["running", "paused"].includes(assembly.liveSession.status) && Number(assembly.liveSession.day || 1) === currentDay ? "Resume Assembly" : "Start Assembly"}
+                                        <span>${assembly.liveSession && ["running", "paused"].includes(assembly.liveSession.status) && Number(assembly.liveSession.day || 1) === currentDay ? "Resume" : "Start"}</span>
                                     </button>
-                                    <button id="generate-report-btn" class="flex items-center justify-center gap-1.5 px-4 py-3 rounded-xl text-sm font-semibold text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors bg-white/90 dark:bg-slate-900/80">
+                                    <button id="generate-report-btn" class="text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 bg-white/90 dark:bg-slate-900/80 shadow-sm rounded-xl px-4 py-3 flex items-center justify-center gap-1.5 text-sm font-semibold transition-colors">
                                         <span class="material-symbols-outlined text-[18px]">description</span>
-                                        Generate Report
+                                        <span>Report</span>
                                     </button>
-                                    <button id="clear-talks-btn" class="flex items-center justify-center gap-1.5 px-4 py-3 rounded-xl text-sm font-semibold text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900/40 hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors bg-white/90 dark:bg-slate-900/80">
+                                    <button id="clear-talks-btn" class="text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900/40 hover:bg-red-50 dark:hover:bg-red-900/10 bg-white/90 dark:bg-slate-900/80 rounded-xl px-4 py-3 flex items-center justify-center gap-1.5 text-sm font-semibold transition-colors">
                                         <span class="material-symbols-outlined text-[18px]">delete_sweep</span>
-                                        Clear Talks
+                                        <span>Clear</span>
                                     </button>
                                 </div>
                             </div>
                         </div>
                     </div>
+                    `}
                 </div>
             </div>
 
-            <!-- Stats Cards -->
-            <div class="space-y-4">
-                <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                    <div>
-                        <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Trackers</p>
-                        <p id="stats-scope-label" class="text-sm text-slate-500 dark:text-slate-400">Showing totals for ${assembly.eventType === "Regional Convention (3 Days)" ? `Day ${currentDay}` : "this assembly"}.</p>
-                    </div>
-                    ${
-                        assembly.eventType === "Regional Convention (3 Days)"
-                            ? `
-                    <div class="inline-flex items-center gap-1 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-900/80 p-1 shadow-sm">
-                        <button type="button" class="stats-scope-btn inline-flex items-center rounded-xl px-3 py-2 text-xs font-bold transition-colors bg-blue-600 text-white shadow-sm" data-scope="day">This Day</button>
-                        <button type="button" class="stats-scope-btn inline-flex items-center rounded-xl px-3 py-2 text-xs font-bold transition-colors text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800" data-scope="all">All Days</button>
-                    </div>
-                    `
-                            : ""
-                    }
-                </div>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
-                <!-- Total Talks -->
-                <div class="bg-gradient-to-br from-white to-slate-50 dark:from-slate-900 dark:to-slate-800/80 px-6 py-6 rounded-2xl border border-slate-200/80 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
-                    <div class="absolute top-0 right-0 w-24 h-24 bg-blue-500/5 dark:bg-blue-400/5 rounded-full blur-2xl -mr-8 -mt-8"></div>
-                    <div class="relative flex items-center justify-between">
+            <!-- Stats + Venue row -->
+            <div class="${isTactician ? 'flex flex-col lg:flex-row gap-6' : ''}">
+                <!-- Stats Cards -->
+                <div class="${isTactician ? 'flex-1 space-y-4' : 'space-y-4'}">
+                    <div class="${isTactician ? 'flex flex-row items-center justify-between' : 'flex flex-col gap-3 md:flex-row md:items-center md:justify-between'}">
                         <div>
-                            <p class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1 shadow-sm">Total Talks</p>
-                            <div class="flex items-baseline gap-2">
-                                <h3 id="stat-total-talks" class="text-4xl font-black text-slate-900 dark:text-white tracking-tight leading-none group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">0</h3>
-                                <span class="text-sm font-medium text-slate-400 hidden group-hover:inline-block transition-opacity opacity-0 group-hover:opacity-100 animate-slide-in-right">Scheduled</span>
-                            </div>
+                            <h3 class="${isTactician ? 'text-lg md:text-xl font-bold text-slate-900 dark:text-white' : 'text-xs font-bold uppercase tracking-[0.18em] text-slate-400'}">${isTactician ? 'Tracker Status' : 'Trackers'}</h3>
+                            <p id="stats-scope-label" class="text-sm text-slate-500 dark:text-slate-400 ${isTactician ? 'hidden' : ''}">Showing totals for ${assembly.eventType === "Regional Convention (3 Days)" ? `Day ${currentDay}` : "this assembly"}.</p>
                         </div>
-                        <div class="w-14 h-14 bg-white dark:bg-slate-800 rounded-2xl flex items-center justify-center shadow-sm border border-slate-100 dark:border-slate-700 text-blue-500 dark:text-blue-400 transform group-hover:scale-110 group-hover:rotate-3 transition-transform">
-                            <span class="material-symbols-outlined text-[28px]">record_voice_over</span>
+                        ${assembly.eventType === "Regional Convention (3 Days)"
+            ? `
+                        <div class="inline-flex items-center gap-1 p-1 ${isTactician ? 'rounded-full border border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/20' : 'rounded-2xl border border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-900/80 shadow-sm'}">
+                            <button type="button" class="stats-scope-btn inline-flex items-center px-4 py-1.5 text-sm transition-colors ${isTactician ? 'rounded-full text-slate-900 dark:text-white font-medium bg-white dark:bg-slate-800 shadow-sm' : 'rounded-xl font-bold bg-blue-600 text-white shadow-sm'}" data-scope="day">This Day</button>
+                            <button type="button" class="stats-scope-btn inline-flex items-center px-4 py-1.5 text-sm transition-colors ${isTactician ? 'rounded-full text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white' : 'rounded-xl font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}" data-scope="all">All Days</button>
+                        </div>
+                        `
+            : ""
+        }
+                    </div>
+                    <div class="${isTactician ? 'flex flex-col md:flex-row gap-4' : 'grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6'}">
+                    <!-- Total Talks -->
+                    <div class="${isTactician ? 'flex-1 min-w-0 bg-white dark:bg-slate-900/40 rounded-[2.5rem] border border-slate-200/60 dark:border-slate-800 p-6' : 'bg-gradient-to-br from-white to-slate-50 dark:from-slate-900 dark:to-slate-800/80 px-6 py-6 rounded-2xl border border-slate-200/80 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group'}">
+                        ${isTactician ? '' : '<div class="absolute top-0 right-0 w-24 h-24 bg-blue-500/5 dark:bg-blue-400/5 rounded-full blur-2xl -mr-8 -mt-8"></div>'}
+                        <div class="${isTactician ? 'flex flex-col' : 'relative flex items-center justify-between'}">
+                            <div class="${isTactician ? 'flex items-center gap-2 mb-3' : ''}">
+                                ${isTactician ? '<span class="material-symbols-outlined text-[20px] text-blue-600 dark:text-blue-500">group</span>' : ''}
+                                <p class="${isTactician ? 'text-[11px] uppercase font-medium text-slate-500 dark:text-slate-400 tracking-wider' : 'text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1 shadow-sm'}">Total Talks</p>
+                            </div>
+                            <div class="${isTactician ? 'flex flex-col' : 'flex items-baseline gap-2'}">
+                                <h3 id="stat-total-talks" class="${isTactician ? 'text-[2.5rem] font-bold text-slate-900 dark:text-white leading-none tracking-tight' : 'text-4xl font-black text-slate-900 dark:text-white tracking-tight leading-none group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors'}">0</h3>
+                                ${isTactician ? '<span id="stat-total-talks-sub" class="text-sm font-medium text-slate-500 dark:text-slate-400 mt-2">Across 3 days</span>' : '<span class="text-sm font-medium text-slate-400 hidden group-hover:inline-block transition-opacity opacity-0 group-hover:opacity-100 animate-slide-in-right">Scheduled</span>'}
+                            </div>
+                            ${isTactician ? '' : `
+                            <div class="w-14 h-14 bg-white dark:bg-slate-800 rounded-2xl flex items-center justify-center shadow-sm border border-slate-100 dark:border-slate-700 text-blue-500 dark:text-blue-400 transform group-hover:scale-110 group-hover:rotate-3 transition-transform">
+                                <span class="material-symbols-outlined text-[28px]">record_voice_over</span>
+                            </div>
+                            `}
                         </div>
                     </div>
-                </div>
 
-                <!-- Confirmed Speakers -->
-                <div class="bg-gradient-to-br from-white to-slate-50 dark:from-slate-900 dark:to-slate-800/80 px-6 py-6 rounded-2xl border border-slate-200/80 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
-                    <div class="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 dark:bg-emerald-400/5 rounded-full blur-2xl -mr-8 -mt-8"></div>
-                    <div class="relative flex items-center justify-between">
-                        <div>
-                            <p class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1 shadow-sm">Confirmed</p>
-                            <div class="flex items-baseline gap-2">
-                                <h3 id="stat-confirmed-speakers" class="text-4xl font-black text-slate-900 dark:text-white tracking-tight leading-none group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">0</h3>
-                                <span class="text-sm font-medium text-slate-400 hidden group-hover:inline-block transition-opacity opacity-0 group-hover:opacity-100 animate-slide-in-right">Speakers</span>
+                    <!-- Confirmed Speakers -->
+                    <div class="${isTactician ? 'flex-1 min-w-0 bg-white dark:bg-slate-900/40 rounded-[2.5rem] border border-slate-200/60 dark:border-slate-800 p-6' : 'bg-gradient-to-br from-white to-slate-50 dark:from-slate-900 dark:to-slate-800/80 px-6 py-6 rounded-2xl border border-slate-200/80 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group'}">
+                        ${isTactician ? '' : '<div class="absolute top-0 right-0 w-24 h-24 bg-emerald-500/5 dark:bg-emerald-400/5 rounded-full blur-2xl -mr-8 -mt-8"></div>'}
+                        <div class="${isTactician ? 'flex flex-col' : 'relative flex items-center justify-between'}">
+                            <div class="${isTactician ? 'flex items-center gap-2 mb-3' : ''}">
+                                ${isTactician ? '<span class="material-symbols-outlined text-[20px] text-orange-600 dark:text-orange-500">check_circle</span>' : ''}
+                                <p class="${isTactician ? 'text-[11px] uppercase font-medium text-slate-500 dark:text-slate-400 tracking-wider' : 'text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1 shadow-sm'}">Confirmed</p>
                             </div>
-                        </div>
-                        <div class="w-14 h-14 bg-white dark:bg-slate-800 rounded-2xl flex items-center justify-center shadow-sm border border-slate-100 dark:border-slate-700 text-emerald-500 dark:text-emerald-400 transform group-hover:scale-110 group-hover:-rotate-3 transition-transform">
-                            <span class="material-symbols-outlined text-[28px]">person_check</span>
+                            <div class="${isTactician ? 'flex flex-col' : 'flex items-baseline gap-2'}">
+                                <h3 id="stat-confirmed-speakers" class="${isTactician ? 'text-[2.5rem] font-bold text-slate-900 dark:text-white leading-none tracking-tight' : 'text-4xl font-black text-slate-900 dark:text-white tracking-tight leading-none group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors'}">0</h3>
+                                ${isTactician ? '<span id="stat-confirmed-pct" class="text-sm font-medium text-orange-600 dark:text-orange-500 mt-2">— Completion</span>' : '<span class="text-sm font-medium text-slate-400 hidden group-hover:inline-block transition-opacity opacity-0 group-hover:opacity-100 animate-slide-in-right">Speakers</span>'}
+                            </div>
+                            ${isTactician ? '' : `
+                            <div class="w-14 h-14 bg-white dark:bg-slate-800 rounded-2xl flex items-center justify-center shadow-sm border border-slate-100 dark:border-slate-700 text-emerald-500 dark:text-emerald-400 transform group-hover:scale-110 group-hover:-rotate-3 transition-transform">
+                                <span class="material-symbols-outlined text-[28px]">person_check</span>
+                            </div>
+                            `}
                         </div>
                     </div>
-                </div>
 
-                <!-- Pending Assignments -->
-                <div class="bg-gradient-to-br from-white to-slate-50 dark:from-slate-900 dark:to-slate-800/80 px-6 py-6 rounded-2xl border border-slate-200/80 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group">
-                    <div class="absolute top-0 right-0 w-24 h-24 bg-amber-500/5 dark:bg-amber-400/5 rounded-full blur-2xl -mr-8 -mt-8"></div>
-                    <div class="relative flex items-center justify-between">
-                        <div>
-                            <p class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1 shadow-sm">Pending</p>
-                            <div class="flex items-baseline gap-2">
-                                <h3 id="stat-pending-assignments" class="text-4xl font-black text-slate-900 dark:text-white tracking-tight leading-none group-hover:text-amber-500 dark:group-hover:text-amber-400 transition-colors">0</h3>
-                                <span class="text-sm font-medium text-slate-400 hidden group-hover:inline-block transition-opacity opacity-0 group-hover:opacity-100 animate-slide-in-right">Assignments</span>
+                    <!-- Pending Assignments -->
+                    <div class="${isTactician ? 'flex-1 min-w-0 bg-white dark:bg-slate-900/40 rounded-[2.5rem] border border-slate-200/60 dark:border-slate-800 p-6' : 'bg-gradient-to-br from-white to-slate-50 dark:from-slate-900 dark:to-slate-800/80 px-6 py-6 rounded-2xl border border-slate-200/80 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden group'}">
+                        ${isTactician ? '' : '<div class="absolute top-0 right-0 w-24 h-24 bg-amber-500/5 dark:bg-amber-400/5 rounded-full blur-2xl -mr-8 -mt-8"></div>'}
+                        <div class="${isTactician ? 'flex flex-col' : 'relative flex items-center justify-between'}">
+                            <div class="${isTactician ? 'flex items-center gap-2 mb-3' : ''}">
+                                ${isTactician ? '<span class="material-symbols-outlined text-[20px] text-orange-600 dark:text-orange-500">pending_actions</span>' : ''}
+                                <p class="${isTactician ? 'text-[11px] uppercase font-medium text-slate-500 dark:text-slate-400 tracking-wider' : 'text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1 shadow-sm'}">Pending</p>
                             </div>
-                        </div>
-                        <div class="w-14 h-14 bg-white dark:bg-slate-800 rounded-2xl flex items-center justify-center shadow-sm border border-slate-100 dark:border-slate-700 text-amber-500 dark:text-amber-400 transform group-hover:scale-110 transition-transform">
-                            <span class="material-symbols-outlined text-[28px]">assignment_late</span>
+                            <div class="${isTactician ? 'flex flex-col' : 'flex items-baseline gap-2'}">
+                                <h3 id="stat-pending-assignments" class="${isTactician ? 'text-[2.5rem] font-bold text-slate-900 dark:text-white leading-none tracking-tight' : 'text-4xl font-black text-slate-900 dark:text-white tracking-tight leading-none group-hover:text-amber-500 dark:group-hover:text-amber-400 transition-colors'}">0</h3>
+                                ${isTactician ? '<span class="text-sm font-medium text-orange-600 dark:text-orange-500 mt-2">Needs attention</span>' : '<span class="text-sm font-medium text-slate-400 hidden group-hover:inline-block transition-opacity opacity-0 group-hover:opacity-100 animate-slide-in-right">Assignments</span>'}
+                            </div>
+                            ${isTactician ? '' : `
+                            <div class="w-14 h-14 bg-white dark:bg-slate-800 rounded-2xl flex items-center justify-center shadow-sm border border-slate-100 dark:border-slate-700 text-amber-500 dark:text-amber-400 transform group-hover:scale-110 transition-transform">
+                                <span class="material-symbols-outlined text-[28px]">assignment_late</span>
+                            </div>
+                            `}
                         </div>
                     </div>
-                </div>
+                    </div>
                 </div>
             </div>
 
             <!-- Program Chairmen -->
-            <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
-                <div class="px-4 py-4 md:px-6 border-b border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 flex items-center justify-between gap-3">
+            <div class="${isTactician ? 'tactile-card overflow-hidden' : 'bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden'}">
+                <div class="px-4 py-4 md:px-6 ${isTactician ? 'bg-[var(--tactician-surface-low)]' : 'border-b border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40'} flex items-center justify-between gap-3">
                     <div>
                         <h3 class="text-base md:text-lg font-bold text-slate-900 dark:text-white">Program Chairmen</h3>
                         <p id="chairmen-subtitle" class="text-xs md:text-sm text-slate-500 dark:text-slate-400">Assign the morning and afternoon chairmen for ${assembly.eventType === "Regional Convention (3 Days)" ? `Day ${currentDay}` : "this assembly"}.</p>
@@ -215,43 +278,42 @@ export const renderAssemblyDetailsView = async (
             </div>
 
             <!-- Schedule Management Table -->
-            <div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col">
-                <div class="px-3 py-3 md:px-6 md:py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-800/50">
+            <div class="${isTactician ? 'tactile-card flex flex-col pt-2' : 'bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col'}">
+                <div class="px-3 py-3 md:px-6 md:py-4 ${isTactician ? 'mb-2' : 'border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-800/50'} flex items-center justify-between">
                     <div class="flex flex-col">
-                        <h3 class="text-base md:text-lg font-bold text-slate-900 dark:text-white">Schedule</h3>
-                        <p class="text-[10px] md:text-sm text-slate-500 dark:text-slate-400">Manage talks and speakers</p>
+                        <h3 class="${isTactician ? 'editorial-header !text-2xl mt-4 ml-2' : 'text-base md:text-lg font-bold text-slate-900 dark:text-white'}">Schedule</h3>
+                        <p class="text-[10px] md:text-sm text-slate-500 dark:text-slate-400 ${isTactician ? 'ml-2' : ''}">Manage talks and speakers</p>
                     </div>
                     <div class="flex gap-2">
-                        <button id="bulk-import-talks-btn" class="px-3 py-1.5 md:px-4 md:py-2 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 rounded-lg text-xs md:text-sm font-bold flex items-center gap-1.5 transition-all border border-slate-200 dark:border-slate-600 shadow-sm">
+                        <button id="bulk-import-talks-btn" class="${isTactician ? 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:text-orange-600 hover:bg-orange-50/50 shadow-sm px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-1.5 transition-all' : 'px-3 py-1.5 md:px-4 md:py-2 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 rounded-lg text-xs md:text-sm font-bold flex items-center gap-1.5 transition-all border border-slate-200 dark:border-slate-600 shadow-sm'}">
                             <span class="material-symbols-outlined text-sm">upload_file</span> <span class="hidden sm:inline">Bulk Import</span><span class="sm:hidden">Import</span>
                         </button>
-                        <button id="add-talk-btn" class="px-3 py-1.5 md:px-4 md:py-2 bg-slate-900 dark:bg-blue-600 text-white rounded-lg text-xs md:text-sm font-bold flex items-center gap-1.5 hover:opacity-90 transition-all shadow-md">
-                            <span class="material-symbols-outlined text-sm">add</span> <span class="hidden sm:inline">Add Talk</span><span class="sm:hidden">Add</span>
+                        <button id="add-talk-btn" class="${isTactician ? 'tactile-button-primary px-4 py-2 flex items-center gap-1.5 shadow-md' : 'px-3 py-1.5 md:px-4 md:py-2 bg-slate-900 dark:bg-blue-600 text-white rounded-lg text-xs md:text-sm font-bold flex items-center gap-1.5 hover:opacity-90 transition-all shadow-md'}">
+                            <span class="material-symbols-outlined text-sm">add</span> <span class="hidden sm:inline ${isTactician ? 'display-font tracking-widest uppercase text-[11px] font-black' : ''}">Add Talk</span><span class="sm:hidden ${isTactician ? 'display-font tracking-widest uppercase text-[11px] font-black' : ''}">Add</span>
                         </button>
                     </div>
                 </div>
                 <!-- Day Tabs (Only for 3-Day Conventions) -->
-                ${
-                    assembly.eventType === "Regional Convention (3 Days)"
-                        ? `
+                ${assembly.eventType === "Regional Convention (3 Days)"
+            ? `
                 <div class="px-3 py-2 md:px-6 bg-slate-50 border-b border-slate-200 dark:bg-slate-800/80 dark:border-slate-800 flex items-center gap-2 overflow-x-auto">
                     ${[1, 2, 3]
-                        .map(
-                            (dayNum) => `
+                .map(
+                    (dayNum) => `
                     <button class="day-tab-btn px-4 py-2 rounded-t-lg font-bold text-sm transition-colors border-b-2 ${currentDay === dayNum ? "text-blue-600 dark:text-blue-400 border-blue-600 font-bold bg-white dark:bg-slate-900" : "text-slate-500 dark:text-slate-400 border-transparent hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/50"}" data-day="${dayNum}">
                         Day ${dayNum}
                     </button>
                     `,
-                        )
-                        .join("")}
+                )
+                .join("")}
                 </div>
                 `
-                        : ""
-                }
+            : ""
+        }
                 <div class="overflow-x-auto">
                     <table class="w-full text-left">
                         <thead>
-                            <tr class="bg-slate-50/80 dark:bg-slate-800/80 text-slate-500 dark:text-slate-400 text-[10px] font-bold uppercase tracking-wider">
+                            <tr class="${isTactician ? 'text-slate-400 dark:text-slate-500 text-[10px] uppercase font-black tracking-[0.2em] display-font select-none' : 'bg-slate-50/80 dark:bg-slate-800/80 text-slate-500 dark:text-slate-400 text-[10px] font-bold uppercase tracking-wider'}">
                                  <th class="px-3 py-3"><button type="button" class="schedule-sort-btn inline-flex items-center gap-1 hover:text-slate-800 dark:hover:text-slate-200 transition-colors" data-sort-key="day">Day <span class="schedule-sort-indicator text-[11px]" data-sort-indicator="day"></span></button></th>
                                  <th class="px-3 py-3"><button type="button" class="schedule-sort-btn inline-flex items-center gap-1 hover:text-slate-800 dark:hover:text-slate-200 transition-colors" data-sort-key="startTime">Time <span class="schedule-sort-indicator text-[11px]" data-sort-indicator="startTime"></span></button></th>
                                  <th class="px-3 py-3"><button type="button" class="schedule-sort-btn inline-flex items-center gap-1 text-slate-800 dark:text-slate-100 hover:text-slate-900 dark:hover:text-white transition-colors" data-sort-key="outline">Outline <span class="schedule-sort-indicator text-[11px]" data-sort-indicator="outline">▲</span></button></th>
@@ -262,7 +324,7 @@ export const renderAssemblyDetailsView = async (
                                  <th class="px-3 py-3 text-right"></th>
                              </tr>
                         </thead>
-                        <tbody id="talks-list" class="divide-y divide-slate-100 dark:divide-slate-800">
+                        <tbody id="talks-list" class="${isTactician ? 'space-y-2' : 'divide-y divide-slate-100 dark:divide-slate-800'}">
                             <!-- Talks dynamically loaded here -->
                         </tbody>
                     </table>
@@ -277,45 +339,65 @@ export const renderAssemblyDetailsView = async (
         if (!assembly) throw new Error("Assembly not found");
 
         const talks = await getTalks(activeAssemblyId);
+        const speakers = await getSpeakers();
 
         // Populate Header
-        document.getElementById("asm-detail-theme").textContent =
-            assembly.theme || "Untitled Assembly";
-        document.getElementById("asm-detail-location").textContent =
-            assembly.location || "TBD";
+        const theme = assembly.theme || "Untitled Assembly";
+        document.getElementById("asm-detail-theme").textContent = theme;
+        // Breadcrumb name (Tactician only – element may not exist in default)
+        const breadcrumbEl = document.getElementById("asm-breadcrumb-name");
+        if (breadcrumbEl) breadcrumbEl.textContent = theme;
+
+        // Location
+        const locationText = assembly.location || "TBD";
+        const locationEls = document.querySelectorAll("#asm-detail-location span:last-child");
+        locationEls.forEach(el => el.textContent = locationText);
+
+        // Venue details panel (Tactician only)
+        const venueNameEl = document.getElementById("venue-detail-name");
+        const venueAddrEl = document.getElementById("venue-detail-address");
+        if (venueNameEl) venueNameEl.textContent = locationText;
+        if (venueAddrEl) venueAddrEl.textContent = assembly.date ? format(assembly.date, "MMM d, yyyy") + (assembly.eventType === "Regional Convention (3 Days)" ? " – 3 Days" : "") : "Date TBD";
 
         // Date display — for Regional Convention show Day 1 / Day 2 / Day 3 with actual dates
-        const dateContainer = document.getElementById(
-            "asm-detail-date-container",
-        );
-        if (
-            assembly.eventType === "Regional Convention (3 Days)" &&
-            assembly.date
-        ) {
-            const dayLabels = ["Fri", "Sat", "Sun"];
-            dateContainer.innerHTML = [0, 1, 2]
-                .map((offset) => {
-                    const dayDate = addDays(assembly.date, offset);
-                    const isActive = offset + 1 === currentDay;
-                    return [
-                        offset > 0
-                            ? '<span class="text-slate-300 dark:text-slate-700 select-none hidden sm:inline">·</span>'
-                            : "",
-                        `<span class="flex items-center gap-1 ${isActive ? "text-slate-800 dark:text-white font-semibold" : ""}">
-                        <span class="material-symbols-outlined text-[15px]">calendar_today</span>
-                        <span class="font-medium">Day ${offset + 1}</span>
-                        <span>${format(dayDate, "MMM d")}</span>
-                    </span>`,
-                    ].join("");
-                })
-                .join("");
+        const dateContainer = document.getElementById("asm-detail-date-container");
+        if (assembly.eventType === "Regional Convention (3 Days)" && assembly.date) {
+            if (dateContainer) {
+                // Default theme: expand the container with per-day spans
+                dateContainer.innerHTML = [0, 1, 2]
+                    .map((offset) => {
+                        const dayDate = addDays(assembly.date, offset);
+                        const isActive = offset + 1 === currentDay;
+                        return [
+                            offset > 0
+                                ? '<span class="text-slate-300 dark:text-slate-700 select-none hidden sm:inline">·</span>'
+                                : "",
+                            `<span class="flex items-center gap-1 ${isActive ? "text-slate-800 dark:text-white font-semibold" : ""}">
+                            <span class="material-symbols-outlined text-[15px]">calendar_today</span>
+                            <span class="font-medium">Day ${offset + 1}</span>
+                            <span>${format(dayDate, "MMM d")}</span>
+                        </span>`,
+                        ].join("");
+                    })
+                    .join("");
+            } else {
+                // Tactician: show a compact date range on the inline span
+                const dateSpan = document.getElementById("asm-detail-date");
+                if (dateSpan) {
+                    const lastSpan = dateSpan.querySelector("span:last-child");
+                    if (lastSpan) {
+                        const start = format(assembly.date, "MMM d");
+                        const end = format(addDays(assembly.date, 2), "MMM d, yyyy");
+                        lastSpan.textContent = `${start} \u2013 ${end}`;
+                    }
+                }
+            }
         } else {
             const dateSpan = document.getElementById("asm-detail-date");
-            if (dateSpan)
-                dateSpan.querySelector("span:last-child").textContent =
-                    assembly.date
-                        ? format(assembly.date, "MMMM d, yyyy")
-                        : "TBD";
+            if (dateSpan) {
+                const lastSpan = dateSpan.querySelector("span:last-child");
+                if (lastSpan) lastSpan.textContent = assembly.date ? format(assembly.date, "MMMM d, yyyy") : "TBD";
+            }
         }
 
         let activeDay = currentDay;
@@ -401,15 +483,27 @@ export const renderAssemblyDetailsView = async (
                 subtitle.textContent = `Assign the morning and afternoon chairmen for ${assembly.eventType === "Regional Convention (3 Days)" ? `Day ${selectedDay}` : "this assembly"}.`;
             }
             if (morningName) {
-                morningName.textContent =
-                    morning.speakerName || morning.manualName || "Not assigned yet";
+                const isMorningLinked = !!morning.speakerId || (morning.email && (speakers || []).some(s => s.email && s.email.toLowerCase() === morning.email.toLowerCase()));
+                const spkId = morning.speakerId || (morning.email && (speakers || []).find(s => s.email && s.email.toLowerCase() === morning.email.toLowerCase())?.id);
+                morningName.innerHTML = `
+                    <span class="${isMorningLinked ? 'cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 hover:underline transition-colors active-speaker-link' : ''}" data-id="${spkId || ''}" data-email="${morning.email || ''}">
+                        ${morning.speakerName || morning.manualName || "Not assigned yet"}
+                    </span>
+                    ${isMorningLinked ? '<span class="material-symbols-outlined text-[14px] text-blue-400 align-middle ml-1" title="Linked to database">link</span>' : ""}
+                `;
             }
             if (morningHelper) {
                 morningHelper.classList.toggle("hidden", hasMorning);
             }
             if (afternoonName) {
-                afternoonName.textContent =
-                    afternoon.speakerName || afternoon.manualName || "Not assigned yet";
+                const isAfternoonLinked = !!afternoon.speakerId || (afternoon.email && (speakers || []).some(s => s.email && s.email.toLowerCase() === afternoon.email.toLowerCase()));
+                const spkId = afternoon.speakerId || (afternoon.email && (speakers || []).find(s => s.email && s.email.toLowerCase() === afternoon.email.toLowerCase())?.id);
+                afternoonName.innerHTML = `
+                    <span class="${isAfternoonLinked ? 'cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 hover:underline transition-colors active-speaker-link' : ''}" data-id="${spkId || ''}" data-email="${afternoon.email || ''}">
+                        ${afternoon.speakerName || afternoon.manualName || "Not assigned yet"}
+                    </span>
+                    ${isAfternoonLinked ? '<span class="material-symbols-outlined text-[14px] text-blue-400 align-middle ml-1" title="Linked to database">link</span>' : ""}
+                `;
             }
             if (afternoonHelper) {
                 afternoonHelper.classList.toggle("hidden", hasAfternoon);
@@ -422,7 +516,11 @@ export const renderAssemblyDetailsView = async (
         const updateStatsScopeButtons = () => {
             document.querySelectorAll(".stats-scope-btn").forEach((button) => {
                 const isActive = button.dataset.scope === statsScope;
-                button.className = `stats-scope-btn inline-flex items-center rounded-xl px-3 py-2 text-xs font-bold transition-colors ${isActive ? "bg-blue-600 text-white shadow-sm" : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"}`;
+                if (isTactician) {
+                    button.className = `stats-scope-btn inline-flex items-center px-4 py-1.5 text-sm transition-colors ${isActive ? 'rounded-full text-slate-900 dark:text-white font-medium bg-white dark:bg-slate-800 shadow-sm' : 'rounded-full text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'}`;
+                } else {
+                    button.className = `stats-scope-btn inline-flex items-center rounded-xl px-3 py-2 text-xs font-bold transition-colors ${isActive ? "bg-blue-600 text-white shadow-sm" : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"}`;
+                }
             });
         };
 
@@ -437,8 +535,8 @@ export const renderAssemblyDetailsView = async (
                     statsScope === "all"
                         ? "all days"
                         : assembly.eventType === "Regional Convention (3 Days)"
-                          ? `Day ${selectedDay}`
-                          : "this assembly";
+                            ? `Day ${selectedDay}`
+                            : "this assembly";
                 scopeLabel.textContent = `Showing totals for ${labelTarget}.`;
             }
             document.getElementById("stat-total-talks").textContent =
@@ -457,15 +555,15 @@ export const renderAssemblyDetailsView = async (
             } else {
                 list.innerHTML = displayedTalks
                     .map((t) => {
-                        const isLinked = !!t.speakerId;
+                        const isLinked = !!t.speakerId || (t.email && (speakers || []).some(s => s.email && s.email.toLowerCase() === t.email.toLowerCase()));
                         const speakerInitials = t.speakerName
                             ? t.speakerName
-                                  .trim()
-                                  .split(" ")
-                                  .map((n) => n[0])
-                                  .join("")
-                                  .substring(0, 2)
-                                  .toUpperCase()
+                                .trim()
+                                .split(" ")
+                                .map((n) => n[0])
+                                .join("")
+                                .substring(0, 2)
+                                .toUpperCase()
                             : "?";
 
                         const statusColors = {
@@ -482,37 +580,36 @@ export const renderAssemblyDetailsView = async (
                             t.status === "Confirmed"
                                 ? "bg-emerald-500"
                                 : t.status === "Cancelled"
-                                  ? "bg-red-500"
-                                  : "bg-amber-500";
+                                    ? "bg-red-500"
+                                    : "bg-amber-500";
 
                         return `
-                <tr class="talk-row hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors cursor-pointer border-b border-slate-100 dark:border-slate-800/60" data-id="${t.id}">
-                    <td class="px-3 py-3 text-xs text-slate-500 font-medium whitespace-nowrap">${assembly.eventType === "Regional Convention (3 Days)" ? `Day ${t.day || 1}` : "—"}</td>
+                <tr class="talk-row group ${isTactician ? 'hover:bg-[var(--tactician-surface-lowest)] transition-all cursor-pointer' : 'hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors cursor-pointer border-b border-slate-100 dark:border-slate-800/60'}" data-id="${t.id}">
+                    <td class="px-3 py-3 text-xs text-slate-500 font-medium whitespace-nowrap ${isTactician ? 'rounded-l-xl' : ''}">${assembly.eventType === "Regional Convention (3 Days)" ? `Day ${t.day || 1}` : "—"}</td>
                     <td class="px-3 py-3 text-xs font-semibold text-slate-800 dark:text-white whitespace-nowrap">${t.startTime || "—"}</td>
-                    <td class="px-3 py-3 text-xs font-bold text-slate-700 dark:text-slate-300 whitespace-nowrap">${t.outline || "—"}</td>
+                    <td class="px-3 py-3 text-xs ${isTactician ? 'font-black tracking-wider text-slate-600 dark:text-slate-300' : 'font-bold text-slate-700 dark:text-slate-300'} whitespace-nowrap">${t.outline || "—"}</td>
                     <td class="px-3 py-3 min-w-[160px]">
                         <p class="text-xs font-semibold text-slate-900 dark:text-white leading-tight line-clamp-2">${t.theme || t.title || "—"}</p>
                         <span class="text-[10px] text-slate-400 font-mono">${t.type || ""}</span>
                     </td>
                     <td class="px-3 py-3">
-                        ${
-                            t.speakerName
+                        ${t.speakerName
                                 ? `
                         <div class="flex items-center gap-1.5">
                             <div class="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold shrink-0 ${isLinked ? "bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400" : "bg-slate-100 dark:bg-slate-700 text-slate-500"}">${speakerInitials}</div>
-                            <span class="text-xs font-semibold text-slate-900 dark:text-white truncate max-w-[90px]">${t.speakerName}</span>
+                            <span class="text-xs font-semibold text-slate-900 dark:text-white truncate max-w-[90px] ${isLinked ? 'cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 hover:underline transition-colors active-speaker-link' : ''}" data-id="${t.speakerId || (t.email ? (speakers || []).find(s => s.email && s.email.toLowerCase() === t.email.toLowerCase())?.id : '')}" data-email="${t.email || ''}">${t.speakerName}</span>
                             ${isLinked ? '<span class="material-symbols-outlined text-[11px] text-blue-400" title="Linked to database">link</span>' : ""}
                         </div>`
                                 : `<span class="text-xs text-slate-400 italic">Unassigned</span>`
-                        }</td>
+                            }</td>
                     <td class="px-3 py-3 text-xs text-slate-500 dark:text-slate-400 whitespace-nowrap">${t.duration ? t.duration + " min" : "—"}</td>
                     <td class="px-3 py-3">
-                        <button type="button" class="status-badge inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${statusClass} hover:opacity-90 transition-opacity" data-id="${t.id}" data-status="${t.status || "Pending"}" title="Change status">
+                        <button type="button" class="status-badge inline-flex items-center gap-1 ${isTactician ? 'px-2.5 py-1 text-[9px] uppercase tracking-[0.12em] display-font' : 'px-2 py-0.5 text-[10px]'} rounded-full font-bold ${statusClass} hover:opacity-90 transition-opacity" data-id="${t.id}" data-status="${t.status || "Pending"}" title="Change status">
                             <span class="w-1.5 h-1.5 rounded-full ${statusDot}"></span>
                             ${t.status || "Pending"}
                         </button>
                     </td>
-                    <td class="px-3 py-3 text-right whitespace-nowrap">
+                    <td class="px-3 py-3 text-right whitespace-nowrap ${isTactician ? 'rounded-r-xl' : ''}">
                         <button class="edit-talk-btn p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors rounded" data-id="${t.id}" title="Edit">
                             <span class="material-symbols-outlined text-[18px]">edit</span>
                         </button>
@@ -697,8 +794,8 @@ export const renderAssemblyDetailsView = async (
                 const currentStatus = talk.status || "Pending";
                 const nextStatus =
                     statusOrder[
-                        (statusOrder.indexOf(currentStatus) + 1) %
-                            statusOrder.length
+                    (statusOrder.indexOf(currentStatus) + 1) %
+                    statusOrder.length
                     ];
                 statusBtn.disabled = true;
 
@@ -753,8 +850,21 @@ export const renderAssemblyDetailsView = async (
                     const speakers = await getSpeakers();
                     const linkedSpeaker = talk.speakerId
                         ? speakers.find((s) => s.id === talk.speakerId)
-                        : null;
+                        : (talk.email ? speakers.find(s => s.email && s.email.toLowerCase() === talk.email.toLowerCase()) : null);
                     renderTalkDetailDialog(talk, linkedSpeaker, assembly);
+                }
+            }
+        });
+
+        // Add listener for all clickable speaker names in the container
+        container.addEventListener('click', (e) => {
+            const speakerLink = e.target.closest('.active-speaker-link');
+            if (speakerLink) {
+                e.stopPropagation();
+                const id = speakerLink.dataset.id;
+                const email = speakerLink.dataset.email;
+                if (id) {
+                    renderSpeakerDetailsModal(container, id, email);
                 }
             }
         });
@@ -815,21 +925,22 @@ const renderTalkDetailDialog = (talk, linkedSpeaker, assembly) => {
             </button>
         </div>
         <div class="px-6 py-5">
-            ${
-                talk.speakerName
-                    ? `
+            ${talk.speakerName
+            ? `
             <div class="flex items-center gap-3 mb-5">
                 <div class="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold shrink-0 ${linkedSpeaker ? "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300" : "bg-slate-100 dark:bg-slate-800 text-slate-600"}">
                     ${name
-                        .split(" ")
-                        .map((n) => n[0])
-                        .join("")
-                        .substring(0, 2)
-                        .toUpperCase()}
+                .split(" ")
+                .map((n) => n[0])
+                .join("")
+                .substring(0, 2)
+                .toUpperCase()}
                 </div>
                 <div>
-                    <p class="text-base font-bold text-slate-900 dark:text-white">${name}</p>
-                    ${linkedSpeaker ? `<span class="inline-flex items-center gap-1 text-xs font-medium text-blue-600 dark:text-blue-400">Linked to Speakers database</span>` : `<span class="text-xs text-slate-400">Not in Speakers database</span>`}
+                    <p class="text-base font-bold text-slate-900 dark:text-white ${linkedSpeaker ? "cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 hover:underline transition-colors active-speaker-link" : ""}" data-id="${spk.id || ""}" data-email="${email}">
+                        ${name}
+                    </p>
+                    ${linkedSpeaker ? `<span class="inline-flex items-center gap-1 text-xs font-medium text-blue-600 dark:text-blue-400 font-bold">Linked to Speakers database</span>` : `<span class="text-xs text-slate-400">Not in Speakers database</span>`}
                 </div>
                 <div class="ml-auto flex gap-1.5">${badge("Visitor", talk.isVisitor)}${badge("Bethelite", talk.isBethelite)}</div>
             </div>
@@ -842,12 +953,12 @@ const renderTalkDetailDialog = (talk, linkedSpeaker, assembly) => {
                 ${field("Address", address)}
             </div>
             `
-                    : `
+            : `
             <div class="text-center py-6 text-slate-400">
                 <p class="text-sm">No speaker assigned to this talk.</p>
             </div>
             `
-            }
+        }
         </div>
         <div class="px-6 py-4 border-t border-slate-100 dark:border-slate-800 flex justify-end">
             <button id="close-talk-detail-btn" class="px-5 py-2 rounded-lg text-sm font-semibold text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">Close</button>
@@ -864,6 +975,17 @@ const renderTalkDetailDialog = (talk, linkedSpeaker, assembly) => {
         .addEventListener("click", close);
     modal.addEventListener("click", (e) => {
         if (e.target === modal) close();
+
+        const speakerLink = e.target.closest(".active-speaker-link");
+        if (speakerLink) {
+            e.stopPropagation();
+            const id = speakerLink.dataset.id;
+            const email = speakerLink.dataset.email;
+            if (id) {
+                // Here we pass document.body or a generic container since this is a nested modal
+                renderSpeakerDetailsModal(document.body, id, email);
+            }
+        }
     });
 };
 
@@ -962,14 +1084,13 @@ const renderAssemblySessionReportModal = (assembly, talks, currentDay) => {
                     <p class="text-3xl font-black ${varianceMinutes > 0 ? "text-orange-500" : varianceMinutes < 0 ? "text-emerald-500" : "text-slate-900 dark:text-white"} mt-2">${varianceMinutes > 0 ? "+" : ""}${varianceMinutes}m</p>
                 </div>
             </div>
-            ${
-                sessionTalks.length === 0
-                    ? `
+            ${sessionTalks.length === 0
+            ? `
                 <div class="rounded-xl border border-dashed border-slate-300 dark:border-slate-700 px-6 py-10 text-center text-slate-500 dark:text-slate-400">
                     No talks found for this assembly day.
                 </div>
             `
-                    : `
+            : `
                 <div class="rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
                     <table class="w-full text-left text-sm">
                         <thead class="bg-slate-50 dark:bg-slate-800/60 text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400">
@@ -984,15 +1105,15 @@ const renderAssemblySessionReportModal = (assembly, talks, currentDay) => {
                         </thead>
                         <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
                             ${sessionTalks
-                                .map((talk) => {
-                                    const actualSeconds =
-                                        getTalkElapsedSeconds(talk);
-                                    const actualMinutes = actualSeconds
-                                        ? Math.round(
-                                              (actualSeconds / 60) * 10,
-                                          ) / 10
-                                        : 0;
-                                    return `
+                .map((talk) => {
+                    const actualSeconds =
+                        getTalkElapsedSeconds(talk);
+                    const actualMinutes = actualSeconds
+                        ? Math.round(
+                            (actualSeconds / 60) * 10,
+                        ) / 10
+                        : 0;
+                    return `
                                 <tr>
                                     <td class="px-4 py-4 text-slate-500 dark:text-slate-400 whitespace-nowrap">${talk.startTime || "—"}</td>
                                     <td class="px-4 py-4">
@@ -1007,13 +1128,13 @@ const renderAssemblySessionReportModal = (assembly, talks, currentDay) => {
                                     </td>
                                     <td class="px-4 py-4 text-slate-600 dark:text-slate-300 max-w-xs">${(talk.performanceNotes || "").trim() || '<span class="text-slate-400">No notes</span>'}</td>
                                 </tr>`;
-                                })
-                                .join("")}
+                })
+                .join("")}
                         </tbody>
                     </table>
                 </div>
             `
-            }
+        }
         </div>
         <div class="px-6 py-4 border-t border-slate-200 dark:border-slate-800 flex justify-end bg-slate-50 dark:bg-slate-800/50">
             <button id="close-session-report-btn" class="px-5 py-2 rounded-lg text-sm font-semibold text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">Close</button>
@@ -1054,16 +1175,16 @@ const renderAssemblySessionModal = (
 
     let liveSession =
         assembly.liveSession &&
-        Number(assembly.liveSession.day || 1) === currentDay
+            Number(assembly.liveSession.day || 1) === currentDay
             ? { ...assembly.liveSession }
             : {
-                  day: currentDay,
-                  status: "idle",
-                  startedAtMs: null,
-                  endedAtMs: null,
-                  activeTalkId: null,
-                  lastUpdatedAtMs: null,
-              };
+                day: currentDay,
+                status: "idle",
+                startedAtMs: null,
+                endedAtMs: null,
+                activeTalkId: null,
+                lastUpdatedAtMs: null,
+            };
 
     let activeIndex = Math.max(
         0,
@@ -1162,11 +1283,11 @@ const renderAssemblySessionModal = (
                     </div>
                     <div class="divide-y divide-slate-200 dark:divide-slate-800">
                         ${sessionTalks
-                            .map((talk, index) => {
-                                const isActive = index === activeIndex;
-                                const talkState =
-                                    talk.sessionState || "not_started";
-                                return `
+                .map((talk, index) => {
+                    const isActive = index === activeIndex;
+                    const talkState =
+                        talk.sessionState || "not_started";
+                    return `
                             <button type="button" class="session-talk-row w-full text-left px-4 py-4 ${isActive ? "bg-white dark:bg-slate-900" : "hover:bg-white/70 dark:hover:bg-slate-900/60"} transition-colors" data-index="${index}">
                                 <div class="flex items-start justify-between gap-3">
                                     <div>
@@ -1177,8 +1298,8 @@ const renderAssemblySessionModal = (
                                     <span class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold ${talkState === "completed" ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" : talkState === "running" ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300" : talkState === "paused" ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" : "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400"}">${talkState.replace("_", " ")}</span>
                                 </div>
                             </button>`;
-                            })
-                            .join("")}
+                })
+                .join("")}
                     </div>
                 </div>
                 <div class="overflow-y-auto p-6 space-y-6">
@@ -1540,10 +1661,21 @@ const renderChairmenModal = async (
         const manualName = document
             .getElementById(`chairman-${slot}-name`)
             .value.trim();
-        const speakerId = select.value;
-        const selectedSpeaker = speakers.find(
+        let speakerId = select.value;
+        let selectedSpeaker = speakers.find(
             (speaker) => speaker.id === speakerId,
         );
+
+        // Try linking by email if no speakerId is present
+        if (!speakerId && manualName) {
+            const emailPart = manualName.includes("@") ? manualName : ""; // Check if manualName is actually an email
+            // Use existing email if available or try to find by manualName as fallback
+            const matchedSpeaker = speakers.find(s => s.email && s.email.toLowerCase() === (emailPart || manualName).toLowerCase());
+            if (matchedSpeaker) {
+                speakerId = matchedSpeaker.id;
+                selectedSpeaker = matchedSpeaker;
+            }
+        }
 
         if (!speakerId && !manualName) {
             return null;
@@ -1606,7 +1738,7 @@ export const renderAssemblyModal = async (
             assemblyToEdit.date instanceof Date
                 ? assemblyToEdit.date
                 : assemblyToEdit.date.toDate?.() ||
-                  new Date(assemblyToEdit.date);
+                new Date(assemblyToEdit.date);
         dateStr = d.toISOString().split("T")[0];
     }
 
@@ -1900,13 +2032,25 @@ const renderAddTalkModal = async (
                 btn.disabled = true;
 
                 const speakerSelect = document.getElementById("talk-speaker");
-                const speakerId = speakerSelect.value;
-                const selectedSpeaker = speakers.find(
-                    (s) => s.id === speakerId,
-                );
                 const enteredSpeakerName = document
                     .getElementById("talk-speaker-name")
                     .value.trim();
+                const enteredEmail = document.getElementById("talk-email").value.trim();
+
+                let speakerId = speakerSelect.value;
+                let selectedSpeaker = speakers.find(
+                    (s) => s.id === speakerId,
+                );
+
+                // Try linking by email if no speakerId is present
+                if (!speakerId && enteredEmail) {
+                    const matchedSpeaker = speakers.find(s => s.email && s.email.toLowerCase() === enteredEmail.toLowerCase());
+                    if (matchedSpeaker) {
+                        speakerId = matchedSpeaker.id;
+                        selectedSpeaker = matchedSpeaker;
+                    }
+                }
+
                 const speakerName = speakerId
                     ? selectedSpeaker?.name || enteredSpeakerName || null
                     : enteredSpeakerName || null;

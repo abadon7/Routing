@@ -9,42 +9,45 @@ export const renderCalendarView = async (container, options) => {
     const currentUser = options.getCurrentUser();
     const weeks = getServiceWeeks(currentMonth, calendarViewRange);
 
+    const isTactician = currentDesign === 'tactician';
+
     container.innerHTML = `
-    <div class="space-y-3 animate-fade-in-down">
+    <div class="space-y-6 animate-fade-in-down ${isTactician ? 'tactician-design' : ''}">
             <!--Header Section-->
-            <div class="flex justify-between items-center sm:flex-row flex-col gap-3">
-                <h2 class="text-xl font-bold text-slate-800 dark:text-white tracking-tight">${format(currentMonth, 'MMMM yyyy')} ${calendarViewRange > 1 ? ` - ${format(addMonths(currentMonth, calendarViewRange - 1), 'MMMM yyyy')}` : ''}</h2>
+            <div class="flex justify-between items-end sm:flex-row flex-col gap-4 mb-8">
+                <div>
+                    <h2 class="${isTactician ? 'editorial-header mb-2' : 'text-xl font-bold text-slate-800 dark:text-white tracking-tight'}">${format(currentMonth, 'MMMM yyyy')} ${calendarViewRange > 1 ? ` - ${format(addMonths(currentMonth, calendarViewRange - 1), 'MMMM yyyy')}` : ''}</h2>
+                    ${isTactician ? '<p class="text-slate-500 dark:text-slate-400 font-medium tracking-tight">Strategically manage and route upcoming circuit assignments.</p>' : ''}
+                </div>
                 <div class="flex items-center gap-3">
-                    <select id="calendar-range-select" class="text-xs font-semibold text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-orange-500 cursor-pointer shadow-sm">
-                        <option value="1" ${calendarViewRange === 1 ? 'selected' : ''}>1 Month</option>
-                        <option value="3" ${calendarViewRange === 3 ? 'selected' : ''}>3 Months</option>
-                        <option value="6" ${calendarViewRange === 6 ? 'selected' : ''}>6 Months</option>
+                    <select id="calendar-range-select" class="text-xs font-bold ${isTactician ? 'bg-[var(--tactician-surface-low)] border-none px-4 py-2 hover:bg-[var(--tactician-surface-high)]' : 'text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-2 py-1.5'} rounded-xl focus:outline-none transition-all cursor-pointer shadow-sm">
+                        <option value="1" ${calendarViewRange === 1 ? 'selected' : ''}>1 Month View</option>
+                        <option value="3" ${calendarViewRange === 3 ? 'selected' : ''}>3 Months View</option>
+                        <option value="6" ${calendarViewRange === 6 ? 'selected' : ''}>6 Months View</option>
                     </select>
                     <!-- Month Nav -->
-                    <div class="flex bg-white dark:bg-slate-800 rounded-md shadow-sm border border-slate-200 dark:border-slate-700">
-                         <button id="prev-month" class="px-2.5 py-1 text-xs font-medium text-slate-600 dark:text-slate-300 hover:text-orange-600 dark:hover:text-orange-400 hover:bg-orange-50 dark:hover:bg-slate-700 rounded-l-md transition-colors border-r border-slate-100 dark:border-slate-700 flex items-center gap-1">
-                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
-                            Prev
+                    <div class="flex ${isTactician ? 'bg-[var(--tactician-surface-low)]' : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700'} rounded-xl overflow-hidden shadow-sm">
+                         <button id="prev-month" class="px-4 py-2 text-xs font-bold text-slate-600 dark:text-slate-300 hover:text-orange-600 dark:hover:text-orange-400 hover:bg-orange-50 dark:hover:bg-slate-700 transition-colors ${isTactician ? '' : 'border-r border-slate-100 dark:border-slate-700'} flex items-center gap-1">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
                         </button>
-                        <button id="next-month" class="px-2.5 py-1 text-xs font-medium text-slate-600 dark:text-slate-300 hover:text-orange-600 dark:hover:text-orange-400 hover:bg-orange-50 dark:hover:bg-slate-700 rounded-r-md transition-colors flex items-center gap-1">
-                            Next
-                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                        <button id="next-month" class="px-4 py-2 text-xs font-bold text-slate-600 dark:text-slate-300 hover:text-orange-600 dark:hover:text-orange-400 hover:bg-orange-50 dark:hover:bg-slate-700 transition-colors flex items-center gap-1">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
                         </button>
                     </div>
                 </div>
             </div>
 
             <!--List Table-->
-            <div class="bg-white dark:bg-slate-800 shadow-sm rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden ${currentDesign === 'foundation' ? 'foundation-card' : ''}">
+            <div class="${isTactician ? '' : 'bg-white dark:bg-slate-800 shadow-sm rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden'} ${currentDesign === 'foundation' ? 'foundation-card' : ''}">
                 <!-- Table Header -->
-                <div class="hidden sm:grid sm:grid-cols-12 gap-0 bg-slate-50/80 dark:bg-slate-700/30 border-b border-slate-200 dark:border-slate-700 sticky top-0 z-10 backdrop-blur-sm">
-                    <div class="col-span-3 px-4 py-2.5 text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Service Week</div>
-                    <div class="col-span-7 px-4 py-2.5 text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Activity & Details</div>
-                    <div class="col-span-2 px-4 py-2.5 text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-right">Action</div>
+                <div class="hidden sm:grid sm:grid-cols-12 gap-0 ${isTactician ? 'mb-4 px-6' : 'bg-slate-50/80 dark:bg-slate-700/30 border-b border-slate-200 dark:border-slate-700 sticky top-0 z-10 backdrop-blur-sm'}">
+                    <div class="col-span-3 px-4 py-2.5 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] ${isTactician ? 'display-font' : ''}">Service Week</div>
+                    <div class="col-span-7 px-4 py-2.5 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] ${isTactician ? 'display-font' : ''}">Activity & Details</div>
+                    <div class="col-span-2 px-4 py-2.5 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] ${isTactician ? 'display-font' : ''} text-right">Action</div>
                 </div>
                 
                 <!-- Table Rows -->
-                <div id="weeks-list" class="divide-y divide-slate-100 dark:divide-slate-700">
+                <div id="weeks-list" class="${isTactician ? '' : 'divide-y divide-slate-100 dark:divide-slate-700'}">
                     ${weeks.map((tuesday, index) => {
         const sunday = addDays(tuesday, 5);
         const weekKey = format(tuesday, 'yyyy-MM-dd');
@@ -55,40 +58,39 @@ export const renderCalendarView = async (container, options) => {
         const isCurrentWeek = todayStr >= weekKey && todayStr <= sunStr;
 
         const rowBg = isCurrentWeek
-            ? "bg-blue-50/40 dark:bg-blue-900/10 border-l-4 border-blue-500"
-            : "border-l-4 border-transparent hover:bg-slate-50/50 dark:hover:bg-slate-700/30";
+            ? (isTactician ? "bg-orange-50/40 dark:bg-orange-900/10 border-l-4 border-orange-500 no-line-list-item" : "bg-blue-50/40 dark:bg-blue-900/10 border-l-4 border-blue-500")
+            : (isTactician ? "no-line-list-item" : "border-l-4 border-transparent hover:bg-slate-50/50 dark:hover:bg-slate-700/30");
 
         const textHighlight = isCurrentWeek
-            ? "text-blue-600 dark:text-blue-400"
+            ? (isTactician ? "text-orange-700 dark:text-orange-400" : "text-blue-600 dark:text-blue-400")
             : "text-slate-800 dark:text-slate-200 group-hover:text-orange-600 dark:group-hover:text-orange-400";
 
         return `
-                        <div class="group sm:grid sm:grid-cols-12 gap-0 items-center p-2 sm:p-0 transition-colors calendar-week-row dropzone flex-col ${rowBg}" data-week="${weekKey}">
+                        <div class="group sm:grid sm:grid-cols-12 gap-0 items-center p-2 sm:p-0 transition-all calendar-week-row dropzone flex-col ${rowBg}" data-week="${weekKey}">
                             <!-- Mobile Header: Date + Actions -->
-                            <div class="sm:hidden flex justify-between items-start mb-2 ${isCurrentWeek ? 'pt-2 px-2' : ''}">
-                                <span class="block text-sm font-bold ${textHighlight}">${format(tuesday, 'MMM d')} – ${format(sunday, 'd')} ${isCurrentWeek ? '<span class="text-[10px] uppercase font-black tracking-wider ml-1 px-1.5 py-0.5 rounded-sm bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300">This Week</span>' : ''}</span>
+                            <div class="sm:hidden flex justify-between items-start mb-2 px-2">
+                                <span class="block text-sm font-bold ${textHighlight}">${format(tuesday, 'MMM d')} – ${format(sunday, 'd')} ${isCurrentWeek ? `<span class="soft-pill ${isTactician ? 'bg-orange-100 dark:bg-orange-900/50 text-orange-700 dark:text-orange-300' : 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 ml-1 px-1.5 py-0.5 rounded-sm'}">Active</span>` : ''}</span>
                                 <div id="action-mobile-${weekKey}" class="flex gap-1">
-                                    <!-- Simple Assign button if nothing scheduled -->
                                     <button class="assign-btn inline-flex items-center justify-center p-1.5 text-slate-400 hover:text-orange-500 rounded-lg transition-colors" data-week="${weekKey}">
                                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
                                     </button>
                                 </div>
                             </div>
                             
-                            <div class="hidden sm:block col-span-3 sm:px-4 sm:py-4">
+                            <div class="hidden sm:block col-span-3 sm:px-6 sm:py-4">
                                 <div class="flex flex-col">
-                                    <span class="block text-xs sm:text-lg font-bold transition-colors ${textHighlight}">${format(tuesday, 'MMM d')} – ${format(sunday, 'd')}</span>
-                                    ${isCurrentWeek ? '<span class="text-[10px] font-black uppercase text-blue-500 tracking-widest mt-0.5">Current Week</span>' : ''}
+                                    <span class="block text-xs sm:text-lg font-bold transition-all ${textHighlight} ${isTactician ? 'display-font' : ''}">${format(tuesday, 'MMM d')} – ${format(sunday, 'd')}</span>
+                                    ${isCurrentWeek ? `<span class="${isTactician ? 'text-[9px] font-black uppercase text-orange-500 tracking-[0.2em] mt-0.5' : 'text-[10px] font-black uppercase text-blue-500 tracking-widest mt-0.5'}">Current Week</span>` : ''}
                                 </div>
                             </div>
                             
-                            <div class="col-span-7 px-0 sm:px-4 py-1 sm:py-4 mb-1 sm:mb-0 flex flex-col justify-center" id="activity-${weekKey}">
-                                <span class="text-slate-300 dark:text-slate-600 text-sm italic font-medium">Empty week</span>
+                            <div class="col-span-7 px-2 sm:px-6 py-1 sm:py-4 mb-1 sm:mb-0 flex flex-col justify-center" id="activity-${weekKey}">
+                                <span class="text-slate-300 dark:text-slate-600 text-sm italic font-medium tracking-tight">Empty week</span>
                             </div>
                             
-                            <div class="hidden sm:block col-span-2 sm:px-4 sm:py-4 text-right" id="action-${weekKey}">
-                                <button class="assign-btn inline-flex items-center justify-center px-3 py-1.5 text-[11px] font-bold text-white bg-slate-800 dark:bg-slate-700 hover:bg-orange-600 dark:hover:bg-orange-500 rounded-md shadow-sm transition-all ${currentDesign === 'foundation' ? 'foundation-button' : ''}" data-week="${weekKey}">
-                                    <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
+                            <div class="hidden sm:block col-span-2 sm:px-6 sm:py-4 text-right" id="action-${weekKey}">
+                                <button class="assign-btn inline-flex items-center justify-center ${isTactician ? 'tactile-button-primary scale-90 opacity-0 group-hover:opacity-100 group-hover:scale-100' : 'px-3 py-1.5 text-[11px] font-bold text-white bg-slate-800 dark:bg-slate-700 hover:bg-orange-600 dark:hover:bg-orange-500 rounded-md shadow-sm'} transition-all ${currentDesign === 'foundation' ? 'foundation-button' : ''}" data-week="${weekKey}">
+                                    ${isTactician ? '' : '<svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>'}
                                     Assign
                                 </button>
                             </div>
@@ -98,32 +100,32 @@ export const renderCalendarView = async (container, options) => {
             </div>
             
             <!--Summary Stats Cards-->
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 flex items-center gap-4 shadow-sm ${currentDesign === 'foundation' ? 'foundation-card stats-card-blue' : ''}">
-            <div class="p-3 bg-orange-50 dark:bg-orange-900/20 rounded-xl text-orange-600 dark:text-orange-400 shrink-0">
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 mt-8">
+        <div class="${isTactician ? 'tactile-card' : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl'} p-6 flex items-center gap-5 shadow-sm ${currentDesign === 'foundation' ? 'foundation-card stats-card-blue' : ''}">
+            <div class="p-3.5 ${isTactician ? 'bg-[var(--tactician-surface-low)] text-orange-600' : 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400'} rounded-2xl shrink-0">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
             </div>
             <div class="min-w-0">
-                <h4 class="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1">Tasks Scheduled</h4>
-                <p class="text-2xl font-black text-slate-800 dark:text-white leading-none tracking-tight" id="stat-scheduled">Loading...</p>
+                <h4 class="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.15em] mb-1 ${isTactician ? 'display-font' : ''}">Tasks Scheduled</h4>
+                <p class="text-3xl font-black text-slate-800 dark:text-white leading-none tracking-tight" id="stat-scheduled">Loading...</p>
             </div>
         </div>
-        <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 flex items-center gap-4 shadow-sm ${currentDesign === 'foundation' ? 'foundation-card stats-card-orange' : ''}">
-            <div class="p-3 bg-red-50 dark:bg-red-900/20 rounded-xl text-red-600 dark:text-red-400 shrink-0">
+        <div class="${isTactician ? 'tactile-card' : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl'} p-6 flex items-center gap-5 shadow-sm ${currentDesign === 'foundation' ? 'foundation-card stats-card-orange' : ''}">
+            <div class="p-3.5 ${isTactician ? 'bg-[var(--tactician-surface-low)] text-red-600' : 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400'} rounded-2xl shrink-0">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
             </div>
             <div class="min-w-0">
-                <h4 class="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1">Weeks Open</h4>
-                <p class="text-2xl font-black text-slate-800 dark:text-white leading-none tracking-tight" id="stat-unassigned">Loading...</p>
+                <h4 class="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.15em] mb-1 ${isTactician ? 'display-font' : ''}">Weeks Open</h4>
+                <p class="text-3xl font-black text-slate-800 dark:text-white leading-none tracking-tight" id="stat-unassigned">Loading...</p>
             </div>
         </div>
-        <div id="export-card" class="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 flex items-center gap-4 shadow-sm cursor-pointer hover:border-orange-500 dark:hover:border-orange-500 hover:shadow-md transition-all group ${currentDesign === 'foundation' ? 'foundation-card stats-card-green' : ''}">
-            <div class="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl text-blue-600 dark:text-blue-400 shrink-0 group-hover:bg-orange-50 dark:group-hover:bg-orange-900/20 group-hover:text-orange-600 dark:group-hover:text-orange-400 transition-colors">
+        <div id="export-card" class="${isTactician ? 'tactile-card hover:bg-orange-50/30' : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl hover:border-orange-500 dark:hover:border-orange-500 hover:shadow-md'} p-6 flex items-center gap-5 shadow-sm cursor-pointer transition-all group ${currentDesign === 'foundation' ? 'foundation-card stats-card-green' : ''}">
+            <div class="p-3.5 ${isTactician ? 'bg-[var(--tactician-surface-low)] text-blue-600 group-hover:bg-orange-100 group-hover:text-orange-600' : 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 group-hover:bg-orange-50 dark:group-hover:bg-orange-900/20 group-hover:text-orange-600 dark:group-hover:text-orange-400'} rounded-2xl shrink-0 transition-colors">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
             </div>
             <div class="min-w-0">
-                <h4 class="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1">Export Data</h4>
-                <p class="text-2xl font-black text-slate-800 dark:text-white leading-none tracking-tight group-hover:text-orange-600 transition-colors">CSV Report</p>
+                <h4 class="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.15em] mb-1 ${isTactician ? 'display-font' : ''}">Export Data</h4>
+                <p class="text-3xl font-black text-slate-800 dark:text-white leading-none tracking-tight group-hover:text-orange-600 transition-colors">CSV Report</p>
             </div>
         </div>
     </div>
@@ -288,7 +290,19 @@ const TYPE_STYLES = {
     'Miscellaneous': { bg: 'bg-slate-50/50 dark:bg-slate-500/10', text: 'text-slate-700 dark:text-slate-300', border: 'border-slate-200/50 dark:border-slate-500/20' },
 };
 
+const TACTICIAN_BADGE = 'px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-[0.12em] display-font';
+const TACTICIAN_BADGE_STYLES = {
+    'Congregation Visit': { bg: 'bg-[#bfe9ff] text-[#004e71]' },
+    'Assembly': { bg: 'bg-[#ffdbcf] text-[#8e1c00]' },
+    'School': { bg: 'bg-[#fff2cc] text-[#856404]' },
+    'Group Visit': { bg: 'bg-[#d4edda] text-[#155724]' },
+    'Pioneer Week': { bg: 'bg-[#e0e0ff] text-[#3f51b5]' },
+    'Miscellaneous': { bg: 'bg-[#e9ecef] text-[#495057]' },
+    'Default': { bg: 'bg-[var(--tactician-surface-high)] text-[var(--tactician-on-surface-variant)]' }
+};
+
 const loadMonthActivities = async (weeks, options) => {
+    const isTactician = options.currentDesign === 'tactician';
     const currentUser = options.getCurrentUser();
     if (!currentUser || weeks.length === 0) return 0;
     const rangeStart = weeks[0];
@@ -314,25 +328,29 @@ const loadMonthActivities = async (weeks, options) => {
 
             if (activity && activityEl && actionEl) {
                 const style = TYPE_STYLES[activity.type] || TYPE_STYLES['Congregation Visit'];
+                const badgeStyle = isTactician 
+                    ? (TACTICIAN_BADGE_STYLES[activity.type] || TACTICIAN_BADGE_STYLES['Default'])
+                    : null;
+                const isCompleted = new Date() > tuesday;
 
                 let activityHtml = `
                     <div class="flex items-center gap-3">
-                        <span class="inline-block px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${style.bg} ${style.text} ${style.border}">${activity.type}</span>
-                        <span class="text-sm font-semibold text-slate-800 dark:text-slate-200">
+                        <span class="${isTactician ? TACTICIAN_BADGE + ' ' + badgeStyle.bg + ' ' + badgeStyle.text : 'inline-block px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ' + style.bg + ' ' + style.text + ' ' + style.border}">${activity.type}</span>
+                        <span class="text-sm font-bold ${isTactician ? 'text-slate-900 dark:text-white' : 'text-slate-800 dark:text-slate-200'}">
                             ${activity.type === 'Congregation Visit' ? (activity.congregationName || 'Visit') : activity.type}
                         </span>
                     </div>
                 `;
 
                 if (activity.notes) {
-                    activityHtml += `<span class="block text-xs text-slate-500 dark:text-slate-400 mt-1 ml-1 pl-2 border-l-2 border-slate-100 dark:border-slate-700/50 font-medium">${activity.notes}</span>`;
+                    activityHtml += `<span class="block text-xs ${isTactician ? 'text-slate-500' : 'text-slate-500 dark:text-slate-400'} mt-1 ml-1 pl-3 border-l ${isTactician ? 'border-orange-500/30' : 'border-slate-100 dark:border-slate-700/50'} font-medium">${activity.notes}</span>`;
                 }
 
                 const actSerial = JSON.stringify({ id: activity.id, type: activity.type, congregation_id: activity.congregation_id || null, congregationName: activity.congregationName || null, notes: activity.notes || '' });
 
                 activityEl.innerHTML = `
-                    <div class="draggable-activity cursor-move flex items-center gap-3 w-full p-1 -m-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors" draggable="true" data-activity='${actSerial.replace(/'/g, "&apos;")}'>
-                        <div class="cursor-grab active:cursor-grabbing text-slate-300 dark:text-slate-600 hover:text-slate-400 px-1 shrink-0">
+                    <div class="draggable-activity cursor-move flex items-center gap-3 w-full p-2 -m-2 rounded-xl hover:bg-slate-100/50 dark:hover:bg-slate-700/50 transition-all" draggable="true" data-activity='${actSerial.replace(/'/g, "&apos;")}'>
+                        <div class="cursor-grab active:cursor-grabbing text-slate-300 dark:text-slate-600 hover:text-slate-500 px-1 shrink-0">
                             <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"/></svg>
                         </div>
                         <div class="flex-1">
@@ -363,8 +381,8 @@ const loadMonthActivities = async (weeks, options) => {
                         }
 
                         const note = document.createElement('span');
-                        note.className = 'block text-[11px] text-orange-500/90 font-semibold mt-1 ml-7';
-                        note.innerHTML = `<span class="opacity-70 uppercase text-[9px] tracking-widest mr-1">Last Visit:</span> ${lastDateStr} · ${moSinceLast}mo${comparisonHtml ? ' · ' + comparisonHtml : ''}`;
+                        note.className = `block text-[10px] ${isTactician ? 'text-orange-600 font-bold display-font' : 'text-orange-500/90 font-semibold'} mt-1 ml-7`;
+                        note.innerHTML = `<span class="opacity-70 uppercase text-[9px] tracking-widest mr-1">Previously:</span> ${lastDateStr} · ${moSinceLast}mo${comparisonHtml ? ' · ' + comparisonHtml : ''}`;
                         activityEl.querySelector('.draggable-activity > .flex-1').appendChild(note);
                     }).catch(() => { });
                 }

@@ -1,38 +1,55 @@
 import { getSpeakers, addSpeaker, deleteSpeaker, updateSpeaker } from "../db.js";
+import { renderSpeakerDetailsModal } from "./speaker-details.js";
+import { getStoredDesign } from "./preferences.js";
+
 
 export const renderSpeakersView = async (container) => {
+    const isTactician = getStoredDesign() === 'tactician';
+
     container.innerHTML = `
-    <div class="space-y-8 animate-fade-in-down">
+    <div class="space-y-8 animate-fade-in-down ${isTactician ? 'tactician-design' : ''}">
         <!-- Header -->
-        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div>
-                <h2 class="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">Speaker Management</h2>
-                <p class="text-slate-500 dark:text-slate-400 mt-1">Efficiently manage and track speakers across the circuit.  <span id="speaker-total" class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300"></span></p>
+        <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-4">
+            <div class="flex flex-col gap-2">
+                <h2 class="${isTactician ? 'editorial-header' : 'text-3xl font-bold text-slate-900 dark:text-white tracking-tight'}">Speaker Management</h2>
+                <p class="text-slate-500 dark:text-slate-400 font-medium tracking-tight">Efficiently manage and track speakers across the circuit. <span id="speaker-total" class="${isTactician ? 'soft-pill bg-blue-50 text-blue-700 ml-1' : 'inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 ml-1'}"></span></p>
             </div>
-            <div class="flex items-center gap-2">
-                <button id="bulk-import-btn" class="flex items-center gap-2 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 px-4 py-3 rounded-xl font-bold transition-all border border-slate-200 dark:border-slate-600">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+            <div class="flex flex-col sm:flex-row w-full md:w-auto items-stretch sm:items-center gap-3">
+                <button id="bulk-import-btn" class="${isTactician ? 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:text-orange-600 dark:hover:text-orange-400 border border-slate-200 dark:border-slate-700 hover:border-orange-200 dark:hover:border-orange-900/50 hover:bg-orange-50/50 shadow-sm' : 'bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-600'} flex justify-center items-center gap-2 px-6 py-3 rounded-xl font-bold transition-all transform hover:-translate-y-0.5">
+                    <svg class="w-5 h-5 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
                     <span>Bulk Import</span>
                 </button>
-                <button id="add-speaker-btn" class="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-bold transition-all shadow-lg shadow-blue-600/20">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-                    <span>Add New Speaker</span>
+                <button id="add-speaker-btn" class="${isTactician ? 'tactile-button-primary pl-5 pr-6 py-3 shadow-[0_8px_16px_-6px_rgba(255,107,44,0.4)]' : 'bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/20 px-6 py-3'} flex justify-center items-center gap-2 rounded-xl font-bold transition-all transform hover:-translate-y-0.5 hover:shadow-lg hover:shadow-orange-500/30">
+                    <svg class="w-5 h-5 opacity-90" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                    <span class="${isTactician ? 'display-font tracking-widest uppercase text-[11px] font-black' : ''}">${isTactician ? 'New' : 'Add New Speaker'}</span>
                 </button>
             </div>
         </div>
 
-        <!-- Filters (Simplified) -->
-        <div class="flex items-center gap-3">
-             <div class="relative flex-1 max-w-sm">
+        <!-- Filters -->
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8 px-2">
+              <h3 class="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] ${isTactician ? 'display-font' : 'hidden'}">Network List</h3>
+             <div class="relative w-full sm:max-w-xs">
                 <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
                 </span>
-                <input type="text" id="speaker-search" class="block w-full pl-10 pr-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg leading-5 bg-white dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-500 transition-colors" placeholder="Search speakers...">
+                <input type="text" id="speaker-search" class="block w-full pl-10 pr-3 py-2 leading-5 ${isTactician ? 'bg-[var(--tactician-surface-low)] border-none rounded-xl tracking-tight' : 'border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800'} text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors" placeholder="Search profiles...">
              </div>
         </div>
 
-        <!-- Speakers Table -->
-        <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm">
+        <!-- Speakers Directory -->
+        <div class="${isTactician ? '' : 'bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm'}">
+            ${isTactician ? `
+            <div class="hidden sm:grid sm:grid-cols-12 gap-6 items-center px-6 mb-4">
+                <div class="col-span-4 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] display-font cursor-pointer select-none" data-sort="name">Profile <span class="sort-arrow inline-block ml-0.5"></span></div>
+                <div class="col-span-4 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] display-font cursor-pointer select-none" data-sort="congregation">Congregation <span class="sort-arrow inline-block ml-0.5"></span></div>
+                <div class="col-span-2 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] display-font cursor-pointer select-none" data-sort="status">Status <span class="sort-arrow inline-block ml-0.5"></span></div>
+                <div class="col-span-2 text-right text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] display-font">Action</div>
+            </div>
+            <ul class="space-y-4" id="speakers-list">
+                <li class="p-8 text-center text-slate-400 italic">Updating directory...</li>
+            </ul>
+            ` : `
             <div class="overflow-x-auto">
                 <table class="w-full text-left table-fixed">
                     <thead>
@@ -49,6 +66,7 @@ export const renderSpeakersView = async (container) => {
                     </tbody>
                 </table>
             </div>
+            `}
         </div>
     </div>
     `;
@@ -59,29 +77,64 @@ export const renderSpeakersView = async (container) => {
 
         const renderList = (items) => {
             if (items.length === 0) {
-                list.innerHTML = `
-                    <tr>
-                        <td colspan="5" class="px-6 py-12 text-center">
-                            <div class="flex flex-col items-center justify-center">
-                                <div class="w-16 h-16 bg-slate-100 dark:bg-slate-700 rounded-full flex items-center justify-center mb-4">
-                                     <svg class="w-8 h-8 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
-                                </div>
-                                <h3 class="text-lg font-bold text-slate-900 dark:text-white">No speakers found</h3>
-                                <p class="text-slate-500 dark:text-slate-400 mt-1">Add your first speaker to get started.</p>
-                            </div>
-                        </td>
-                    </tr>
-                `;
+                list.innerHTML = isTactician 
+                    ? `<li class="p-12 text-center text-slate-500 italic border border-dashed border-slate-300 dark:border-slate-700 rounded-3xl">No profiles found in directory.</li>`
+                    : `<tr><td colspan="5" class="px-6 py-12 text-center text-slate-500">No speakers found.</td></tr>`;
             } else {
                 list.innerHTML = items.map(s => {
                     const initials = s.name ? s.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() : '??';
+                    
+                    const TACTICIAN_SPK_STYLES = {
+                        'Active': 'bg-[#d4edda] text-[#155724]',
+                        'Unavailable': 'bg-[#ffdbcf] text-[#8e1c00]',
+                        'Pending': 'bg-[#fff2cc] text-[#856404]'
+                    };
+                    const statusClassTactician = TACTICIAN_SPK_STYLES[s.status || 'Active'] || TACTICIAN_SPK_STYLES['Active'];
+
                     const statusClass = s.status === 'Unavailable'
                         ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400'
                         : 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400';
                     const statusDot = s.status === 'Unavailable' ? 'bg-amber-500' : 'bg-green-600';
 
+                    if (isTactician) {
+                        return `
+                        <li class="no-line-list-item px-6 py-5 group cursor-pointer speaker-row transition-all" data-id="${s.id}" data-email="${s.email || ''}">
+                            <div class="sm:grid sm:grid-cols-12 gap-6 items-center flex flex-col sm:flex-row">
+                                <div class="col-span-4 flex items-center gap-4 w-full">
+                                    <div class="h-10 w-10 sm:h-12 sm:w-12 rounded-full overflow-hidden shrink-0 flex items-center justify-center bg-[var(--tactician-surface-high)] text-slate-500 font-bold text-sm">
+                                        ${initials}
+                                    </div>
+                                    <div class="min-w-0">
+                                        <p class="display-font text-lg text-slate-900 dark:text-white font-bold group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">${s.name}</p>
+                                        <p class="text-[11px] font-bold text-slate-400 uppercase tracking-widest truncate mt-0.5">${s.phone || 'NO PHONE'}</p>
+                                    </div>
+                                </div>
+                                <div class="col-span-4 w-full mb-2 sm:mb-0">
+                                    <p class="text-[11px] font-bold text-slate-600 dark:text-slate-300 uppercase tracking-widest truncate flex items-center gap-1">
+                                        <svg class="w-3.5 h-3.5 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                                        ${s.congregation || 'UNASSIGNED'}
+                                    </p>
+                                </div>
+                                <div class="col-span-2 w-full">
+                                    <span class="px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-[0.12em] display-font flex items-center gap-1.5 w-max ${statusClassTactician}">
+                                        ${s.status || 'Active'}
+                                    </span>
+                                </div>
+                                <div class="col-span-2 flex items-center justify-end gap-1.5 w-full opacity-0 group-hover:opacity-100 transition-all scale-95 group-hover:scale-100">
+                                    <button class="edit-speaker-btn p-2 text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition-all" title="Edit Asset" data-id="${s.id}">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                                    </button>
+                                    <button class="delete-speaker-btn p-2 text-slate-400 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-xl transition-all" title="Delete Asset" data-id="${s.id}" data-name="${s.name}">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                    </button>
+                                </div>
+                            </div>
+                        </li>
+                        `;
+                    }
+
                     return `
-                    <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors group">
+                    <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors group cursor-pointer speaker-row" data-id="${s.id}" data-email="${s.email || ''}">
                         <td class="px-4 py-3 whitespace-nowrap">
                             <div class="flex items-center gap-3">
                                 <div class="h-9 w-9 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-700 dark:text-blue-300 font-bold text-xs border border-blue-200 dark:border-blue-800 shrink-0">
@@ -207,6 +260,14 @@ export const renderSpeakersView = async (container) => {
                 }
                 return;
             }
+
+            const speakerRow = e.target.closest('.speaker-row');
+            if (speakerRow) {
+                const id = speakerRow.dataset.id;
+                const email = speakerRow.dataset.email;
+                renderSpeakerDetailsModal(container, id, email);
+                return;
+            }
         });
 
         // Add Speaker Button
@@ -219,40 +280,41 @@ export const renderSpeakersView = async (container) => {
 };
 
 const renderAddSpeakerModal = async (container, existingSpeaker = null) => {
+    const isTactician = getStoredDesign() === 'tactician';
     const isEdit = !!existingSpeaker;
     const modal = document.createElement('div');
     modal.className = "fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-[2px] animate-fade-in";
     modal.innerHTML = `
-    <div class="bg-white dark:bg-slate-900 w-full max-w-[520px] rounded-xl shadow-2xl border border-slate-200 dark:border-slate-800 flex flex-col overflow-hidden animate-scale-in">
-        <div class="flex items-center justify-between px-6 py-5 border-b border-slate-100 dark:border-slate-800">
-            <h3 class="text-xl font-bold text-slate-900 dark:text-white">${isEdit ? 'Edit Speaker' : 'Add New Speaker'}</h3>
+    <div class="bg-white dark:bg-slate-900 w-full max-w-[520px] ${isTactician ? 'rounded-[2rem] p-2' : 'rounded-xl shadow-2xl border border-slate-200 dark:border-slate-800'} flex flex-col overflow-hidden animate-scale-in">
+        <div class="flex items-center justify-between px-6 py-5 ${isTactician ? '' : 'border-b border-slate-100 dark:border-slate-800'}">
+            <h3 class="${isTactician ? 'editorial-header !text-2xl mt-4 ml-2' : 'text-xl font-bold text-slate-900 dark:text-white'}">${isEdit ? 'Edit Speaker' : 'Add New Speaker'}</h3>
             <button id="close-modal-btn" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
             </button>
         </div>
         <div class="p-6 space-y-5">
             <div class="space-y-1.5">
-                <label class="text-sm font-semibold text-slate-700 dark:text-slate-300">Full Name</label>
-                <input id="spk-name" value="${isEdit ? (existingSpeaker.name || '') : ''}" class="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none" placeholder="e.g. John Doe" type="text"/>
+                <label class="text-xs font-bold text-slate-400 uppercase tracking-widest">Full Name</label>
+                <input id="spk-name" value="${isEdit ? (existingSpeaker.name || '') : ''}" class="w-full ${isTactician ? 'rounded-xl border-none bg-[var(--tactician-surface-lowest)]' : 'rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800'} px-4 py-3 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all" placeholder="e.g. John Doe" type="text"/>
             </div>
-            <div class="grid grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <div class="space-y-1.5">
-                    <label class="text-sm font-semibold text-slate-700 dark:text-slate-300">Email</label>
-                    <input id="spk-email" value="${isEdit ? (existingSpeaker.email || '') : ''}" class="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none" placeholder="john@example.com" type="email"/>
+                    <label class="text-xs font-bold text-slate-400 uppercase tracking-widest">Email</label>
+                    <input id="spk-email" value="${isEdit ? (existingSpeaker.email || '') : ''}" class="w-full ${isTactician ? 'rounded-xl border-none bg-[var(--tactician-surface-lowest)]' : 'rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800'} px-4 py-3 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all" placeholder="john@example.com" type="email"/>
                 </div>
                 <div class="space-y-1.5">
-                    <label class="text-sm font-semibold text-slate-700 dark:text-slate-300">Phone</label>
-                    <input id="spk-phone" value="${isEdit ? (existingSpeaker.phone || '') : ''}" class="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none" placeholder="+1 234 567 890" type="tel"/>
+                    <label class="text-xs font-bold text-slate-400 uppercase tracking-widest">Phone</label>
+                    <input id="spk-phone" value="${isEdit ? (existingSpeaker.phone || '') : ''}" class="w-full ${isTactician ? 'rounded-xl border-none bg-[var(--tactician-surface-lowest)]' : 'rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800'} px-4 py-3 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all" placeholder="+1 234 567 890" type="tel"/>
                 </div>
             </div>
-            <div class="grid grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <div class="space-y-1.5">
-                    <label class="text-sm font-semibold text-slate-700 dark:text-slate-300">Congregation</label>
-                    <input id="spk-congregation" value="${isEdit ? (existingSpeaker.congregation || '') : ''}" class="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Congregation Name" type="text"/>
+                    <label class="text-xs font-bold text-slate-400 uppercase tracking-widest">Congregation</label>
+                    <input id="spk-congregation" value="${isEdit ? (existingSpeaker.congregation || '') : ''}" class="w-full ${isTactician ? 'rounded-xl border-none bg-[var(--tactician-surface-lowest)]' : 'rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800'} px-4 py-3 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all" placeholder="Congregation Name" type="text"/>
                 </div>
                 <div class="space-y-1.5">
-                    <label class="text-sm font-semibold text-slate-700 dark:text-slate-300">Status</label>
-                    <select id="spk-status" class="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none">
+                    <label class="text-xs font-bold text-slate-400 uppercase tracking-widest">Status</label>
+                    <select id="spk-status" class="w-full ${isTactician ? 'rounded-xl border-none bg-[var(--tactician-surface-lowest)]' : 'rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800'} px-4 py-3 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all">
                         <option value="Active" ${isEdit && existingSpeaker.status === 'Active' ? 'selected' : ''}>Active</option>
                         <option value="Unavailable" ${isEdit && existingSpeaker.status === 'Unavailable' ? 'selected' : ''}>Unavailable</option>
                         <option value="Pending" ${isEdit && existingSpeaker.status === 'Pending' ? 'selected' : ''}>Pending</option>
@@ -260,10 +322,10 @@ const renderAddSpeakerModal = async (container, existingSpeaker = null) => {
                 </div>
             </div>
         </div>
-        <div class="flex items-center justify-end gap-3 px-6 py-6 bg-slate-50 dark:bg-slate-800/30 border-t border-slate-100 dark:border-slate-800">
-            <button id="cancel-modal-btn" class="px-5 py-2.5 rounded-lg text-sm font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">Cancel</button>
-            <button id="save-speaker-btn" class="px-6 py-2.5 rounded-lg text-sm font-bold bg-blue-600 text-white hover:bg-blue-700 shadow-md shadow-blue-600/20 transition-all flex items-center gap-2">
-                <span>${isEdit ? 'Save Changes' : 'Add Speaker'}</span>
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-3 ${isTactician ? 'px-6 sm:px-8 py-6' : 'px-6 py-6 bg-slate-50 dark:bg-slate-800/30 border-t border-slate-100 dark:border-slate-800'}">
+            <button id="cancel-modal-btn" class="px-5 py-3 rounded-xl text-sm font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors flex justify-center items-center">Cancel</button>
+            <button id="save-speaker-btn" class="${isTactician ? 'tactile-button-primary px-8 py-3 shadow-[0_8px_16px_-6px_rgba(255,107,44,0.4)]' : 'bg-blue-600 hover:bg-blue-700 shadow-md shadow-blue-600/20 px-6 py-2.5'} rounded-xl text-sm font-bold text-white transition-all transform hover:-translate-y-0.5 hover:shadow-lg hover:shadow-orange-500/30 flex justify-center items-center gap-2">
+                <span class="${isTactician ? 'display-font tracking-widest uppercase text-[11px] font-black w-full text-center' : ''}">${isEdit ? 'Save Changes' : (isTactician ? 'Register Profile' : 'Add Speaker')}</span>
             </button>
         </div>
     </div>

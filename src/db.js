@@ -1,4 +1,4 @@
-import { collection, addDoc, getDocs, deleteDoc, updateDoc, doc, getDoc, query, where, orderBy, limit, Timestamp, writeBatch } from "firebase/firestore";
+import { collection, addDoc, getDocs, deleteDoc, updateDoc, doc, getDoc, query, where, orderBy, limit, Timestamp, writeBatch, collectionGroup } from "firebase/firestore";
 import { db } from "./firebase";
 import { getStableServiceWeekDate } from "./shared/calendar.js";
 
@@ -9,9 +9,10 @@ export const getCongregations = async () => {
     return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 };
 
-export const addCongregation = async (name, circuit = "") => {
+export const addCongregation = async (name, congregationNumber = "", circuit = congregationNumber || "") => {
     return addDoc(collection(db, "congregations"), {
         name,
+        congregationNumber,
         circuit,
         last_visit_date: null
     });
@@ -245,4 +246,40 @@ export const updateSpeaker = async (id, data) => {
 export const deleteSpeaker = async (id) => {
     return deleteDoc(doc(db, "speakers", id));
 };
+
+export const getTalksForSpeaker = async (speakerId, email = null) => {
+    const talks = [];
+
+    // 1. By speakerId
+    const qId = query(collectionGroup(db, "talks"), where("speakerId", "==", speakerId));
+    const snapId = await getDocs(qId);
+    snapId.forEach(docSnap => {
+        const data = docSnap.data();
+        talks.push({
+            id: docSnap.id,
+            assemblyId: docSnap.ref.parent.parent.id,
+            ...data
+        });
+    });
+
+    // 2. By email (if provided)
+    if (email) {
+        const qEmail = query(collectionGroup(db, "talks"), where("email", "==", email));
+        const snapEmail = await getDocs(qEmail);
+        snapEmail.forEach(docSnap => {
+            if (!talks.some(t => t.id === docSnap.id)) {
+                const data = docSnap.data();
+                talks.push({
+                    id: docSnap.id,
+                    assemblyId: docSnap.ref.parent.parent.id,
+                    ...data
+                });
+            }
+        });
+    }
+
+    return talks;
+};
+
+
 
