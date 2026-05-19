@@ -90,3 +90,92 @@
     background-color: var(--foundation-header-bg);
     border-bottom: 1px solid var(--foundation-border);
 }
+
+/* Tactician Design System (Editorial Precision) */
+:root {
+    --tactician-bg: #f8fafb;
+    --tactician-surface-low: #f2f4f5;
+    --tactician-surface-lowest: #ffffff;
+    --tactician-surface-high: #e6e8e9;
+    --tactician-primary: #a83900;
+    --tactician-primary-container: #ff6b2c;
+    --tactician-on-surface: #191c1d;
+    --tactician-on-surface-variant: #5f6368;
+    --tactician-outline: rgba(25, 28, 29, 0.15);
+    --tactician-shadow: 0px 20px 40px rgba(25, 28, 29, 0.06);
+    --tactician-gradient: linear-gradient(135deg, #a83900 0%, #ff6b2c 100%);
+}
+
+.dark.tactician-design {
+    --tactician-bg: #0d0f10;
+    --tactician-surface-low: #191c1d;
+    --tactician-surface-lowest: #222627;
+    --tactician-surface-high: #2c3132;
+    --tactician-on-surface: #e1e3e4;
+    --tactician-on-surface-variant: #c4c7c8;
+    --tactician-outline: rgba(225, 227, 228, 0.15);
+    --tactician-shadow: 0px 20px 40px rgba(0, 0, 0, 0.4);
+}
+
+.tactician-design {
+    font-family: 'Inter', sans-serif;
+    background-color: var(--tactician-bg) !important;
+    color: var(--tactician-on-surface);
+}
+
+.tactician-design h1, 
+.tactician-design h2, 
+.tactician-design h3, 
+.tactician-design .display-font {
+    font-family: 'Manrope', sans-serif;
+    letter-spacing: -0.02em;
+}
+
+.tactician-design .editorial-header {
+    font-size: 3.5rem;
+    font-weight: 800;
+    line-height: 1;
+}
+
+.tactician-design .tactile-card {
+    background-color: var(--tactician-surface-lowest);
+    box-shadow: var(--tactician-shadow);
+    border-radius: 1.5rem;
+    border: none !important;
+}
+
+.tactician-design .tactile-button-primary {
+    background: var(--tactician-gradient);
+    color: white;
+    border-radius: 2rem;
+    padding: 0.75rem 1.5rem;
+    font-weight: 700;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border: none;
+}
+
+.tactician-design .tactile-button-primary:hover {
+    box-shadow: 0 0 20px rgba(255, 107, 44, 0.3);
+    transform: translateY(-1px);
+}
+
+.tactician-design .no-line-list-item {
+    margin-bottom: 1rem;
+    border: none !important;
+    transition: all 0.2s ease;
+}
+
+.tactician-design .no-line-list-item:hover {
+    background-color: var(--tactician-surface-lowest);
+    border-radius: 1rem;
+    box-shadow: 0 4px 12px rgba(25, 28, 29, 0.04);
+}
+
+.tactician-design .soft-pill {
+    border-radius: 9999px;
+    padding: 0.25rem 0.75rem;
+    font-size: 0.7rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}

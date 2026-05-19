@@ -19,14 +19,18 @@ export const toggleTheme = () => {
 };
 
 export const applyDesign = (design) => {
-    document.documentElement.classList.remove('foundation-design');
+    document.documentElement.classList.remove('foundation-design', 'tactician-design');
     if (design === 'foundation') {
         document.documentElement.classList.add('foundation-design');
+    } else if (design === 'tactician') {
+        document.documentElement.classList.add('tactician-design');
     }
 };
 
 export const getNextDesign = (currentDesign) => {
-    const nextDesign = currentDesign === 'default' ? 'foundation' : 'default';
+    const designs = ['default', 'foundation', 'tactician'];
+    const currentIndex = designs.indexOf(currentDesign);
+    const nextDesign = designs[(currentIndex + 1) % designs.length];
     localStorage.design = nextDesign;
     return nextDesign;
 };

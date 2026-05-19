@@ -1,53 +1,68 @@
 import { getCongregations, addCongregation, deleteCongregation, updateCongregation, getLastTwoVisits } from "../db.js";
 
 export const renderCongregationsView = async (container, options) => {
+    const isTactician = options.currentDesign === 'tactician';
+
     container.innerHTML = `
-    <div class="space-y-8 animate-fade-in-down">
-        <div class="bg-white dark:bg-slate-800 shadow-sm rounded-xl p-8 border border-slate-200 dark:border-slate-700 ${options.currentDesign === 'foundation' ? 'foundation-card' : ''}">
-            <h2 class="text-2xl font-bold text-slate-800 dark:text-white mb-6">Add Congregation</h2>
-            <form id="add-cong-form" class="flex flex-col sm:flex-row gap-4">
-                <input type="text" name="name" placeholder="Congregation Name" class="flex-grow shadow-sm border-slate-300 dark:border-slate-600 rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all outline-none bg-white dark:bg-slate-700 text-slate-900 dark:text-white placeholder-slate-400" required>
-                    <input type="text" name="circuit" placeholder="Circuit (Optional)" class="sm:w-1/3 shadow-sm border-slate-300 dark:border-slate-600 rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all outline-none bg-white dark:bg-slate-700 text-slate-900 dark:text-white placeholder-slate-400">
-                        <button type="submit" class="bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-8 rounded-lg shadow-sm hover:shadow-md transition-all transform hover:-translate-y-0.5 ${options.currentDesign === 'foundation' ? 'foundation-button' : ''}">Add Congregation</button>
-                    </form>
+    <div class="space-y-12 animate-fade-in-down ${isTactician ? 'tactician-design' : ''}">
+        <!-- Editorial Header -->
+        <div class="flex flex-col gap-2">
+            <h2 class="${isTactician ? 'editorial-header' : 'text-2xl font-bold text-slate-800 dark:text-white'}">Congregations Directory</h2>
+            <p class="text-slate-500 dark:text-slate-400 font-medium tracking-tight">Organize and track assignment patterns across your circuit network.</p>
+        </div>
+
+        <!-- Add Form (Recessed Well in Tactician) -->
+        <div class="${isTactician ? 'bg-[var(--tactician-surface-low)] p-10 rounded-[2rem]' : 'bg-white dark:bg-slate-800 shadow-sm rounded-xl p-8 border border-slate-200 dark:border-slate-700'} ${options.currentDesign === 'foundation' ? 'foundation-card' : ''}">
+            <h3 class="text-sm font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] mb-6 ${isTactician ? 'display-font' : ''}">${isTactician ? 'Register New' : 'Add Congregation'}</h3>
+            <form id="add-cong-form" class="flex flex-col sm:flex-row gap-6">
+                <input type="text" name="name" placeholder="Congregation Name" class="flex-grow ${isTactician ? 'bg-[var(--tactician-surface-lowest)] border-none' : 'shadow-sm border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700'} rounded-xl px-5 py-4 focus:ring-2 focus:ring-orange-500 transition-all outline-none text-slate-900 dark:text-white placeholder-slate-400" required>
+                <input type="text" name="congregationNumber" placeholder="Congregation Number" class="sm:w-1/3 ${isTactician ? 'bg-[var(--tactician-surface-lowest)] border-none' : 'shadow-sm border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700'} rounded-xl px-5 py-4 focus:ring-2 focus:ring-orange-500 transition-all outline-none text-slate-900 dark:text-white placeholder-slate-400">
+                <button type="submit" class="${isTactician ? 'tactile-button-primary' : 'bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-8 rounded-lg shadow-sm hover:shadow-md'} transition-all transform hover:-translate-y-0.5 ${options.currentDesign === 'foundation' ? 'foundation-button' : ''}">
+                    ${isTactician ? 'Add Asset' : 'Add Congregation'}
+                </button>
+            </form>
+        </div>
+
+        <!-- Directory Section -->
+        <div>
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8 px-2">
+                <h3 class="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] ${isTactician ? 'display-font' : ''}">Network List</h3>
+                <div class="flex items-center gap-3">
+                    <span class="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Sort By</span>
+                    <select id="cong-sort" class="${isTactician ? 'bg-[var(--tactician-surface-low)] border-none px-4 py-2' : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 px-3 py-1.5'} text-xs font-bold text-slate-600 dark:text-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-orange-500 cursor-pointer">
+                        <option value="name-asc">Alphabetical A → Z</option>
+                        <option value="name-desc">Alphabetical Z → A</option>
+                        <option value="visit-oldest">Chronological — Oldest first</option>
+                        <option value="visit-newest">Chronological — Newest first</option>
+                    </select>
                 </div>
-                <div class="bg-white dark:bg-slate-800 shadow-sm rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 ${options.currentDesign === 'foundation' ? 'foundation-card' : ''}">
-                    <div class="px-8 py-6 border-b border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-700/50 flex justify-between items-center">
-                        <h2 class="text-lg font-bold text-slate-700 dark:text-slate-200">Congregations Directory</h2>
-                        <div class="flex items-center gap-2">
-                            <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L13 13.414V19a1 1 0 01-.553.894l-4 2A1 1 0 017 21v-7.586L3.293 6.707A1 1 0 013 6V4z"/></svg>
-                            <select id="cong-sort" class="text-xs font-semibold text-slate-600 dark:text-slate-300 bg-transparent border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-orange-500 cursor-pointer">
-                                <option value="name-asc">Name A → Z</option>
-                                <option value="name-desc">Name Z → A</option>
-                                <option value="visit-oldest">Last visit — Oldest first</option>
-                                <option value="visit-newest">Last visit — Newest first</option>
-                            </select>
-                        </div>
-                    </div>
-                    <ul id="cong-list" class="divide-y divide-slate-100 dark:divide-slate-700">
-                        <li class="p-8 text-center text-slate-400 italic">Loading congregations...</li>
-                    </ul>
-                </div>
-        </div>`;
+            </div>
+            <ul id="cong-list" class="${isTactician ? '' : 'divide-y divide-slate-100 dark:divide-slate-700 bg-white dark:bg-slate-800 shadow-sm rounded-xl border border-slate-200 dark:border-slate-700'}">
+                <li class="p-8 text-center text-slate-400 italic">Updating directory database...</li>
+            </ul>
+        </div>
+    </div>`;
 
     document.getElementById('add-cong-form').addEventListener('submit', async (e) => {
         e.preventDefault();
         const name = e.target.name.value;
-        const circuit = e.target.circuit.value;
         const form = e.target;
+        const congregationNumber = form.congregationNumber.value;
+        const preservedCircuit = form.dataset.circuitValue || congregationNumber;
 
         try {
             if (form.dataset.mode === "edit") {
-                await updateCongregation(form.dataset.editId, { name, circuit });
+                await updateCongregation(form.dataset.editId, { name, congregationNumber, circuit: preservedCircuit });
                 // Reset mode
                 form.dataset.mode = "";
                 form.dataset.editId = "";
+                form.dataset.circuitValue = "";
                 form.querySelector('button[type="submit"]').textContent = "Add Congregation";
                 const btn = form.querySelector('button[type="submit"]');
                 btn.classList.add('bg-orange-500', 'hover:bg-orange-600');
                 btn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
             } else {
-                await addCongregation(name, circuit);
+                await addCongregation(name, congregationNumber);
             }
             e.target.reset();
             loadCongregations(container, options);
@@ -66,6 +81,7 @@ export const renderCongregationsView = async (container, options) => {
 };
 
 const loadCongregations = async (container, options) => {
+    const isTactician = options.currentDesign === 'tactician';
     try {
         const congs = await getCongregations();
         const list = document.getElementById('cong-list');
@@ -141,34 +157,36 @@ const loadCongregations = async (container, options) => {
                 }
 
                 visitHtml = `
-                    <div class="flex flex-col items-end gap-0.5">
-                        <span class="bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide">
+                    <div class="flex flex-col items-end gap-1">
+                        <span class="${isTactician ? 'soft-pill bg-[#bfe9ff] text-[#004e71]' : 'bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide'}">
                             Next: ${lastDateStr}
                         </span>
-                        <span class="text-xs text-slate-500 dark:text-slate-400">${moSinceLast} mo ago</span>
+                        <span class="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">${moSinceLast} mo ago</span>
                         ${comparisonHtml}
                     </div>`;
             }
 
             return `
-            <li class="px-8 py-5 hover:bg-slate-50 dark:hover:bg-slate-700/50 flex justify-between items-start transition-colors group">
+            <li class="${isTactician ? 'no-line-list-item px-8 py-6' : 'px-8 py-5 border-b border-slate-100 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50'} flex justify-between items-center transition-all group">
                 <div class="flex-1">
-                    <span class="block text-slate-800 dark:text-slate-200 font-bold text-lg group-hover:text-orange-600 dark:group-hover:text-orange-400 transition-colors">${c.name}</span>
-                    <span class="block text-sm text-slate-500 dark:text-slate-400 mt-0.5 flex items-center gap-1">
-                        <svg class="w-3 h-3 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-                        ${c.circuit || 'No Circuit'}
+                    <span class="block ${isTactician ? 'display-font text-xl' : 'text-lg'} text-slate-900 dark:text-white font-bold transition-colors group-hover:text-orange-600 dark:group-hover:text-orange-400">${c.name}</span>
+                    <span class="block text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-1 flex items-center gap-1">
+                        <svg class="w-3 h-3 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                        ${c.congregationNumber || c.circuit || 'No Congregation Number'}
                     </span>
                 </div>
-                <div class="flex items-center gap-4">
+                <div class="flex items-center gap-6">
                     <div class="text-right">
                         ${visitHtml}
                     </div>
-                    <button class="edit-cong-btn text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors" data-id="${c.id}" data-name="${c.name}" data-circuit="${c.circuit || ''}">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
-                    </button>
-                    <button class="delete-cong-btn text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors" data-id="${c.id}">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                    </button>
+                    <div class="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-all scale-95 group-hover:scale-100">
+                        <button class="edit-cong-btn p-2 text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition-all" title="Edit Asset" data-id="${c.id}" data-name="${c.name}" data-circuit="${c.circuit || ''}" data-congregation-number="${c.congregationNumber || c.circuit || ''}">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                        </button>
+                        <button class="delete-cong-btn p-2 text-slate-400 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-xl transition-all" title="Delete Asset" data-id="${c.id}">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                        </button>
+                    </div>
                 </div>
             </li>`;
         }).join('');
@@ -189,12 +207,17 @@ const loadCongregations = async (container, options) => {
             btn.addEventListener('click', () => {
                 const form = document.getElementById('add-cong-form');
                 form.name.value = btn.dataset.name;
-                form.circuit.value = btn.dataset.circuit;
+                form.congregationNumber.value = btn.dataset.congregationNumber;
+                form.dataset.circuitValue = btn.dataset.circuit || btn.dataset.congregationNumber || "";
 
                 const submitBtn = form.querySelector('button[type="submit"]');
                 submitBtn.textContent = "Update Congregation";
                 submitBtn.classList.remove('bg-orange-500', 'hover:bg-orange-600');
-                submitBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
+                if (isTactician) {
+                    submitBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
+                } else {
+                    submitBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
+                }
 
                 form.dataset.mode = "edit";
                 form.dataset.editId = btn.dataset.id;
@@ -207,3 +230,6 @@ const loadCongregations = async (container, options) => {
         document.getElementById('cong-list').innerHTML = `<li class="p-6 text-center text-red-500">Error: ${err.message}</li>`;
     }
 };
+
+
+
