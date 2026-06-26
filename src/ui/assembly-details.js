@@ -279,17 +279,37 @@ export const renderAssemblyDetailsView = async (
 
             <!-- Schedule Management Table -->
             <div class="${isTactician ? 'tactile-card flex flex-col pt-2' : 'bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col'}">
-                <div class="px-3 py-3 md:px-6 md:py-4 ${isTactician ? 'mb-2' : 'border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-800/50'} flex items-center justify-between">
-                    <div class="flex flex-col">
-                        <h3 class="${isTactician ? 'editorial-header !text-2xl mt-4 ml-2' : 'text-base md:text-lg font-bold text-slate-900 dark:text-white'}">Schedule</h3>
-                        <p class="text-[10px] md:text-sm text-slate-500 dark:text-slate-400 ${isTactician ? 'ml-2' : ''}">Manage talks and speakers</p>
+                <div class="px-3 py-3 md:px-6 md:py-4 ${isTactician ? 'mb-2' : 'border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50'} flex flex-col gap-3">
+                    <div class="flex items-center justify-between gap-3">
+                        <div class="flex flex-col">
+                            <h3 class="${isTactician ? 'editorial-header !text-2xl mt-4 ml-2' : 'text-base md:text-lg font-bold text-slate-900 dark:text-white'}">Schedule</h3>
+                            <p class="text-[10px] md:text-sm text-slate-500 dark:text-slate-400 ${isTactician ? 'ml-2' : ''}">Manage talks and speakers</p>
+                        </div>
+                        <div class="flex gap-2">
+                            <button id="print-schedule-btn" class="${isTactician ? 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:text-orange-600 hover:bg-orange-50/50 shadow-sm px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-1.5 transition-all' : 'px-3 py-1.5 md:px-4 md:py-2 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 rounded-lg text-xs md:text-sm font-bold flex items-center gap-1.5 transition-all border border-slate-200 dark:border-slate-600 shadow-sm'}">
+                                <span class="material-symbols-outlined text-sm">print</span> <span class="hidden sm:inline">Print</span><span class="sm:hidden">Print</span>
+                            </button>
+                            <button id="bulk-import-talks-btn" class="${isTactician ? 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:text-orange-600 hover:bg-orange-50/50 shadow-sm px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-1.5 transition-all' : 'px-3 py-1.5 md:px-4 md:py-2 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 rounded-lg text-xs md:text-sm font-bold flex items-center gap-1.5 transition-all border border-slate-200 dark:border-slate-600 shadow-sm'}">
+                                <span class="material-symbols-outlined text-sm">upload_file</span> <span class="hidden sm:inline">Bulk Import</span><span class="sm:hidden">Import</span>
+                            </button>
+                            <button id="add-talk-btn" class="${isTactician ? 'tactile-button-primary px-4 py-2 flex items-center gap-1.5 shadow-md' : 'px-3 py-1.5 md:px-4 md:py-2 bg-slate-900 dark:bg-blue-600 text-white rounded-lg text-xs md:text-sm font-bold flex items-center gap-1.5 hover:opacity-90 transition-all shadow-md'}">
+                                <span class="material-symbols-outlined text-sm">add</span> <span class="hidden sm:inline ${isTactician ? 'display-font tracking-widest uppercase text-[11px] font-black' : ''}">Add Talk</span><span class="sm:hidden ${isTactician ? 'display-font tracking-widest uppercase text-[11px] font-black' : ''}">Add</span>
+                            </button>
+                        </div>
                     </div>
-                    <div class="flex gap-2">
-                        <button id="bulk-import-talks-btn" class="${isTactician ? 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:text-orange-600 hover:bg-orange-50/50 shadow-sm px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-1.5 transition-all' : 'px-3 py-1.5 md:px-4 md:py-2 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 rounded-lg text-xs md:text-sm font-bold flex items-center gap-1.5 transition-all border border-slate-200 dark:border-slate-600 shadow-sm'}">
-                            <span class="material-symbols-outlined text-sm">upload_file</span> <span class="hidden sm:inline">Bulk Import</span><span class="sm:hidden">Import</span>
-                        </button>
-                        <button id="add-talk-btn" class="${isTactician ? 'tactile-button-primary px-4 py-2 flex items-center gap-1.5 shadow-md' : 'px-3 py-1.5 md:px-4 md:py-2 bg-slate-900 dark:bg-blue-600 text-white rounded-lg text-xs md:text-sm font-bold flex items-center gap-1.5 hover:opacity-90 transition-all shadow-md'}">
-                            <span class="material-symbols-outlined text-sm">add</span> <span class="hidden sm:inline ${isTactician ? 'display-font tracking-widest uppercase text-[11px] font-black' : ''}">Add Talk</span><span class="sm:hidden ${isTactician ? 'display-font tracking-widest uppercase text-[11px] font-black' : ''}">Add</span>
+                    <!-- Search Bar -->
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0"/></svg>
+                        </div>
+                        <input
+                            id="schedule-search-input"
+                            type="text"
+                            placeholder="Search by theme, speaker, outline, status…"
+                            class="${isTactician ? 'w-full pl-9 pr-9 py-2 rounded-xl bg-[var(--tactician-surface-low)] text-slate-900 dark:text-white text-sm placeholder-slate-400 dark:placeholder-slate-500 outline-none focus:ring-2 focus:ring-orange-400/50 transition-all border-0' : 'w-full pl-9 pr-9 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-sm placeholder-slate-400 dark:placeholder-slate-500 outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 dark:focus:border-blue-500 transition-all shadow-sm'}"
+                        />
+                        <button id="schedule-search-clear" class="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors hidden">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                         </button>
                     </div>
                 </div>
@@ -403,6 +423,7 @@ export const renderAssemblyDetailsView = async (
         let activeDay = currentDay;
         let scheduleSort = { key: "outline", direction: "asc" };
         let statsScope = "day";
+        let scheduleSearchQuery = "";
         const list = document.getElementById("talks-list");
         const colSpan = 8;
         const compareScheduleValues = (a, b, key) => {
@@ -451,7 +472,23 @@ export const renderAssemblyDetailsView = async (
                     ? talks.filter((t) => (t.day || 1) === selectedDay)
                     : talks;
 
-            return [...dayTalks].sort((a, b) => {
+            const q = scheduleSearchQuery.trim().toLowerCase();
+            const filteredTalks = q
+                ? dayTalks.filter((t) => {
+                    const fields = [
+                        t.theme || t.title || "",
+                        t.outline || "",
+                        t.speakerName || "",
+                        t.startTime || "",
+                        t.status || "",
+                        t.type || "",
+                        t.congregation || "",
+                    ];
+                    return fields.some((f) => f.toLowerCase().includes(q));
+                  })
+                : dayTalks;
+
+            return [...filteredTalks].sort((a, b) => {
                 const primary = compareScheduleValues(a, b, scheduleSort.key);
                 if (primary !== 0) {
                     return scheduleSort.direction === "asc" ? primary : -primary;
@@ -549,9 +586,18 @@ export const renderAssemblyDetailsView = async (
         };
         const renderDaySchedule = (selectedDay = activeDay) => {
             const displayedTalks = getDisplayedTalks(selectedDay);
+            const isSearching = scheduleSearchQuery.trim().length > 0;
 
             if (displayedTalks.length === 0) {
-                list.innerHTML = `<tr><td colspan="${colSpan}" class="px-6 py-8 text-center text-slate-500 italic">No talks scheduled yet for ${assembly.eventType === "Regional Convention (3 Days)" ? `Day ${selectedDay}` : "this assembly"}. Click "Add New Talk" to get started.</td></tr>`;
+                list.innerHTML = isSearching
+                    ? `<tr><td colspan="${colSpan}" class="px-6 py-10 text-center">
+                        <div class="flex flex-col items-center gap-2">
+                            <svg class="w-8 h-8 text-slate-300 dark:text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0"/></svg>
+                            <p class="text-sm font-semibold text-slate-500 dark:text-slate-400">No talks match &ldquo;<span class='text-slate-700 dark:text-slate-200'>${scheduleSearchQuery.trim()}</span>&rdquo;</p>
+                            <p class="text-xs text-slate-400 dark:text-slate-500">Try a different keyword or clear the search.</p>
+                        </div>
+                      </td></tr>`
+                    : `<tr><td colspan="${colSpan}" class="px-6 py-8 text-center text-slate-500 italic">No talks scheduled yet for ${assembly.eventType === "Regional Convention (3 Days)" ? `Day ${selectedDay}` : "this assembly"}. Click "Add New Talk" to get started.</td></tr>`;
             } else {
                 list.innerHTML = displayedTalks
                     .map((t) => {
@@ -638,6 +684,11 @@ export const renderAssemblyDetailsView = async (
             .getElementById("generate-report-btn")
             ?.addEventListener("click", () =>
                 renderAssemblySessionReportModal(assembly, talks, activeDay),
+            );
+        document
+            .getElementById("print-schedule-btn")
+            ?.addEventListener("click", () =>
+                renderPrintScheduleModal(assembly, talks, activeDay, speakers),
             );
         document
             .getElementById("start-assembly-btn")
@@ -750,6 +801,26 @@ export const renderAssemblyDetailsView = async (
                     options,
                 ),
             );
+
+        // Search bar wiring
+        const searchInput = document.getElementById("schedule-search-input");
+        const searchClear = document.getElementById("schedule-search-clear");
+        if (searchInput) {
+            searchInput.addEventListener("input", () => {
+                scheduleSearchQuery = searchInput.value;
+                searchClear?.classList.toggle("hidden", scheduleSearchQuery.trim().length === 0);
+                renderDaySchedule(activeDay);
+            });
+        }
+        if (searchClear) {
+            searchClear.addEventListener("click", () => {
+                scheduleSearchQuery = "";
+                searchInput.value = "";
+                searchClear.classList.add("hidden");
+                renderDaySchedule(activeDay);
+                searchInput.focus();
+            });
+        }
 
         const statusClassMap = {
             Confirmed: [
@@ -1027,6 +1098,487 @@ const getTalkElapsedSeconds = (talk, now = Date.now()) => {
         stored +
         Math.max(0, Math.floor((now - talk.activeSegmentStartedAtMs) / 1000))
     );
+};
+
+const triggerPrint = (assembly, talks, activeDay, options, speakers) => {
+    const { scope, includeChairmen, includeStatus } = options;
+    const isThreeDay = assembly.eventType === "Regional Convention (3 Days)";
+
+    let daysToPrint = [1];
+    if (isThreeDay) {
+        if (scope === "day") {
+            daysToPrint = [activeDay];
+        } else {
+            daysToPrint = [1, 2, 3];
+        }
+    }
+
+    let htmlMarkup = `<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>${assembly.theme || "Program Schedule"}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            color: #1e293b;
+            background: #ffffff;
+            margin: 0;
+            padding: 1.5cm;
+            font-size: 10.5pt;
+            line-height: 1.4;
+        }
+        h1, h2, h3, h4 {
+            font-family: 'Manrope', 'Inter', sans-serif;
+            color: #0f172a;
+            margin: 0;
+        }
+        .assembly-header {
+            margin-bottom: 2rem;
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 1rem;
+            position: relative;
+        }
+        .assembly-header h1 {
+            font-size: 24pt;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            margin-bottom: 0.5rem;
+        }
+        .meta-container {
+            display: flex;
+            gap: 1.5rem;
+            font-size: 9.5pt;
+            color: #475569;
+            font-weight: 500;
+        }
+        .meta-item {
+            display: flex;
+            align-items: center;
+        }
+        .day-section {
+            margin-bottom: 2.5rem;
+        }
+        .day-title-container {
+            margin-bottom: 1.2rem;
+            padding-bottom: 0.4rem;
+            border-bottom: 1px solid #cbd5e1;
+        }
+        .day-title {
+            font-size: 14pt;
+            font-weight: 800;
+            color: #ff6b2c;
+            display: inline-block;
+        }
+        .day-subtitle {
+            font-size: 10pt;
+            color: #64748b;
+            font-weight: 500;
+            margin-left: 0.5rem;
+        }
+        .chairmen-container {
+            display: grid;
+            grid-template-cols: 1fr 1fr;
+            gap: 1rem;
+            background-color: #f8fafc;
+            border-radius: 8px;
+            padding: 0.8rem 1.2rem;
+            margin-bottom: 1.2rem;
+        }
+        .chairman-box p {
+            margin: 0;
+        }
+        .chairman-label {
+            font-size: 8pt;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #64748b;
+            margin-bottom: 0.15rem !important;
+        }
+        .chairman-value {
+            font-size: 10.5pt;
+            font-weight: 600;
+            color: #334155;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 1.5rem;
+            page-break-inside: auto;
+        }
+        tr {
+            page-break-inside: avoid;
+            page-break-after: auto;
+        }
+        th {
+            text-align: left;
+            font-size: 8.5pt;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #475569;
+            border-bottom: 2px solid #94a3b8;
+            padding: 8px 10px;
+        }
+        td {
+            padding: 9px 10px;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 9.5pt;
+            vertical-align: top;
+        }
+        .time-col {
+            font-weight: 700;
+            white-space: nowrap;
+            width: 60px;
+        }
+        .outline-col {
+            font-weight: 600;
+            color: #475569;
+            width: 70px;
+        }
+        .theme-col {
+            font-weight: 600;
+            color: #0f172a;
+        }
+        .speaker-col {
+            color: #334155;
+            width: 140px;
+        }
+        .duration-col {
+            color: #64748b;
+            text-align: right;
+            width: 50px;
+        }
+        .status-col {
+            width: 80px;
+            text-align: center;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 1.5px 6px;
+            border-radius: 4px;
+            font-size: 7.5pt;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.02em;
+        }
+        .status-confirmed {
+            background-color: #d1fae5;
+            color: #065f46;
+        }
+        .status-pending {
+            background-color: #fef3c7;
+            color: #92400e;
+        }
+        .status-cancelled {
+            background-color: #fee2e2;
+            color: #991b1b;
+        }
+        .page-break {
+            page-break-before: always;
+            break-before: page;
+        }
+        .footer {
+            margin-top: 3rem;
+            border-top: 1px solid #e2e8f0;
+            padding-top: 0.8rem;
+            font-size: 8pt;
+            color: #94a3b8;
+            display: flex;
+            justify-content: space-between;
+        }
+        @media print {
+            body {
+                padding: 0;
+            }
+            .no-print {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="assembly-header">
+        <h1>${assembly.theme || "Program Schedule"}</h1>
+        <div class="meta-container">
+            <div class="meta-item">
+                <strong>Type:&nbsp;</strong> ${assembly.eventType === "Regional Convention (3 Days)" ? "Regional Convention" : "Circuit Assembly"}
+            </div>
+            ${assembly.date ? `
+            <div class="meta-item">
+                <strong>Date:&nbsp;</strong> ${new Date(assembly.date).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+            </div>` : ''}
+            ${assembly.location ? `
+            <div class="meta-item">
+                <strong>Location:&nbsp;</strong> ${assembly.location}
+            </div>` : ''}
+        </div>
+    </div>
+`;
+
+    // Loop through the selected days
+    daysToPrint.forEach((dayNum, idx) => {
+        const isFirst = idx === 0;
+        const dayClass = isFirst ? "day-section" : "day-section page-break";
+        
+        // Filter and sort talks for this day
+        const dayTalks = talks.filter((t) => (t.day || 1) === dayNum);
+        const sortedTalks = [...dayTalks].sort((a, b) => {
+            const timeA = a.startTime || "00:00";
+            const timeB = b.startTime || "00:00";
+            const comp = timeA.localeCompare(timeB);
+            if (comp !== 0) return comp;
+            return (a.outline || "").localeCompare(b.outline || "");
+        });
+
+        // Day specific details
+        let dateLabel = "";
+        if (isThreeDay && assembly.date) {
+            const dayDate = addDays(new Date(assembly.date), dayNum - 1);
+            dateLabel = dayDate.toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' });
+        }
+
+        htmlMarkup += `<div class="${dayClass}">`;
+        
+        if (isThreeDay) {
+            htmlMarkup += `
+                <div class="day-title-container">
+                    <span class="day-title">Day ${dayNum}</span>
+                    ${dateLabel ? `<span class="day-subtitle">${dateLabel}</span>` : ""}
+                </div>
+            `;
+        }
+
+        // Program Chairmen for this day
+        if (includeChairmen) {
+            const chairmenByDay = assembly.chairmenByDay || {};
+            const currentChairmen = chairmenByDay[String(dayNum)] || {};
+            const morning = currentChairmen.morning || {};
+            const afternoon = currentChairmen.afternoon || {};
+            const morningName = morning.speakerName || morning.manualName || "Not assigned";
+            const afternoonName = afternoon.speakerName || afternoon.manualName || "Not assigned";
+
+            if (morning.speakerName || morning.manualName || afternoon.speakerName || afternoon.manualName) {
+                htmlMarkup += `
+                    <div class="chairmen-container">
+                        <div class="chairman-box">
+                            <p class="chairman-label">Morning Chairman</p>
+                            <p class="chairman-value">${morningName}</p>
+                        </div>
+                        <div class="chairman-box">
+                            <p class="chairman-label">Afternoon Chairman</p>
+                            <p class="chairman-value">${afternoonName}</p>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        // Talks table
+        if (sortedTalks.length === 0) {
+            htmlMarkup += `<p style="font-style: italic; color: #64748b; padding: 1rem 0;">No talks scheduled for this day.</p>`;
+        } else {
+            htmlMarkup += `
+                <table>
+                    <thead>
+                        <tr>
+                            <th class="time-col">Time</th>
+                            <th class="outline-col">Outline</th>
+                            <th class="theme-col">Theme & Title</th>
+                            <th class="speaker-col">Speaker</th>
+                            <th class="duration-col" style="text-align: right;">Dur.</th>
+                            ${includeStatus ? `<th class="status-col">Status</th>` : ''}
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            sortedTalks.forEach((t) => {
+                const statusVal = t.status || "Pending";
+                const statusClass = statusVal === "Confirmed" ? "status-confirmed" : (statusVal === "Cancelled" ? "status-cancelled" : "status-pending");
+                htmlMarkup += `
+                    <tr>
+                        <td class="time-col">${t.startTime || "—"}</td>
+                        <td class="outline-col">${t.outline || "—"}</td>
+                        <td class="theme-col">
+                            <div>${t.theme || t.title || "—"}</div>
+                            ${t.type ? `<div style="font-size: 7.5pt; font-weight: normal; color: #64748b; margin-top: 2px;">${t.type}</div>` : ""}
+                        </td>
+                        <td class="speaker-col">${t.speakerName || "—"}</td>
+                        <td class="duration-col" style="text-align: right; font-weight: 500;">${t.duration ? `${t.duration}m` : "—"}</td>
+                        ${includeStatus ? `
+                        <td class="status-col">
+                            <span class="status-badge ${statusClass}">${statusVal}</span>
+                        </td>` : ''}
+                    </tr>
+                `;
+            });
+
+            htmlMarkup += `
+                    </tbody>
+                </table>
+            `;
+        }
+
+        htmlMarkup += `</div>`;
+    });
+
+    htmlMarkup += `
+    <div class="footer">
+        <div>Program generated on ${new Date().toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}</div>
+        <div>Service Scheduler</div>
+    </div>
+</body>
+</html>`;
+
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) {
+        alert("Pop-up blocker is preventing print preview. Please allow popups for this site.");
+        return;
+    }
+    
+    printWindow.document.write(htmlMarkup);
+    printWindow.document.close();
+
+    printWindow.onload = () => {
+        printWindow.focus();
+        printWindow.print();
+    };
+
+    setTimeout(() => {
+        if (printWindow.document.readyState === 'complete') {
+            printWindow.focus();
+            printWindow.print();
+        }
+    }, 500);
+};
+
+const renderPrintScheduleModal = (assembly, talks, activeDay, speakers) => {
+    const isTactician = getStoredDesign() === 'tactician';
+    const modal = document.createElement("div");
+    modal.className =
+        "fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-[2px] animate-fade-in p-4";
+
+    const isThreeDay = assembly.eventType === "Regional Convention (3 Days)";
+    
+    let optionsHtml = "";
+    if (isThreeDay) {
+        optionsHtml = `
+            <div class="space-y-3">
+                <label class="text-xs font-bold uppercase tracking-wider text-slate-400">Print Scope</label>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <label class="relative flex flex-col p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-orange-500 dark:hover:border-orange-500 cursor-pointer transition-all shadow-sm select-none group">
+                        <input type="radio" name="print-scope" value="day" checked class="sr-only">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="font-bold text-slate-900 dark:text-white group-hover:text-orange-500 transition-colors">Current Day</span>
+                            <div class="w-4 h-4 rounded-full border border-slate-300 dark:border-slate-700 flex items-center justify-center">
+                                <div class="w-1.5 h-1.5 bg-white rounded-full hidden checked-dot"></div>
+                            </div>
+                        </div>
+                        <span class="text-xs text-slate-500 dark:text-slate-400">Print Day ${activeDay} schedule only</span>
+                    </label>
+
+                    <label class="relative flex flex-col p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-orange-500 dark:hover:border-orange-500 cursor-pointer transition-all shadow-sm select-none group">
+                        <input type="radio" name="print-scope" value="all" class="sr-only">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="font-bold text-slate-900 dark:text-white group-hover:text-orange-500 transition-colors">All Days</span>
+                            <div class="w-4 h-4 rounded-full border border-slate-300 dark:border-slate-700 flex items-center justify-center">
+                                <div class="w-1.5 h-1.5 bg-white rounded-full hidden checked-dot"></div>
+                            </div>
+                        </div>
+                        <span class="text-xs text-slate-500 dark:text-slate-400">Print Days 1-3 (split with page breaks)</span>
+                    </label>
+                </div>
+            </div>
+        `;
+    } else {
+        optionsHtml = `
+            <input type="hidden" name="print-scope" value="all">
+            <div class="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/40 text-sm text-slate-600 dark:text-slate-300 border border-slate-100 dark:border-slate-800">
+                This single-day assembly program schedule will be formatted beautifully for printing.
+            </div>
+        `;
+    }
+
+    modal.innerHTML = `
+    <div class="bg-white dark:bg-slate-900 w-full max-w-lg rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden animate-scale-in flex flex-col">
+        <div class="px-6 py-5 border-b border-slate-200 dark:border-slate-800 flex items-start justify-between gap-4 bg-slate-50 dark:bg-slate-800/50">
+            <div>
+                <p class="text-xs font-bold uppercase tracking-widest text-slate-400">Print Program Schedule</p>
+                <h3 class="text-xl font-bold text-slate-900 dark:text-white mt-1">${assembly.theme || "Untitled Assembly"}</h3>
+            </div>
+            <button id="close-print-modal" class="text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+        </div>
+        
+        <div class="p-6 space-y-6">
+            ${optionsHtml}
+            
+            <div class="space-y-3">
+                <label class="text-xs font-bold uppercase tracking-wider text-slate-400">Layout Settings</label>
+                <div class="space-y-2.5">
+                    <label class="flex items-center gap-3 cursor-pointer select-none">
+                        <input type="checkbox" id="print-include-chairmen" checked class="rounded border-slate-300 text-orange-500 focus:ring-orange-500 h-4.5 w-4.5">
+                        <span class="text-sm font-semibold text-slate-700 dark:text-slate-300">Include Program Chairmen</span>
+                    </label>
+                    <label class="flex items-center gap-3 cursor-pointer select-none">
+                        <input type="checkbox" id="print-include-status" checked class="rounded border-slate-300 text-orange-500 focus:ring-orange-500 h-4.5 w-4.5">
+                        <span class="text-sm font-semibold text-slate-700 dark:text-slate-300">Include Talk Status</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+        
+        <div class="px-6 py-4 border-t border-slate-200 dark:border-slate-800 flex justify-end gap-3 bg-slate-50 dark:bg-slate-800/50">
+            <button id="cancel-print-btn" class="px-5 py-2 rounded-xl text-sm font-semibold text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">Cancel</button>
+            <button id="confirm-print-btn" class="${isTactician ? 'tactile-button-primary' : 'bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-bold shadow-sm'} px-6 py-2 text-sm transition-colors">Print</button>
+        </div>
+    </div>`;
+
+    document.body.appendChild(modal);
+
+    const updateRadioStates = () => {
+        const radios = modal.querySelectorAll('input[name="print-scope"]');
+        radios.forEach(r => {
+            const label = r.closest('label');
+            const dot = label.querySelector('.checked-dot');
+            if (r.checked) {
+                label.classList.add('border-orange-500', 'ring-2', 'ring-orange-500/20');
+                dot.classList.remove('hidden');
+            } else {
+                label.classList.remove('border-orange-500', 'ring-2', 'ring-orange-500/20');
+                dot.classList.add('hidden');
+            }
+        });
+    };
+
+    if (isThreeDay) {
+        modal.querySelectorAll('input[name="print-scope"]').forEach(r => {
+            r.addEventListener('change', updateRadioStates);
+        });
+        updateRadioStates();
+    }
+
+    const close = () => modal.remove();
+    document.getElementById("close-print-modal").addEventListener("click", close);
+    document.getElementById("cancel-print-btn").addEventListener("click", close);
+    modal.addEventListener("click", (e) => {
+        if (e.target === modal) close();
+    });
+
+    document.getElementById("confirm-print-btn").addEventListener("click", () => {
+        const scope = modal.querySelector('input[name="print-scope"]:checked')?.value || 'all';
+        const includeChairmen = document.getElementById("print-include-chairmen").checked;
+        const includeStatus = document.getElementById("print-include-status").checked;
+        
+        close();
+        triggerPrint(assembly, talks, activeDay, { scope, includeChairmen, includeStatus }, speakers);
+    });
 };
 
 const renderAssemblySessionReportModal = (assembly, talks, currentDay) => {
@@ -2013,7 +2565,7 @@ const renderAddTalkModal = async (
                 try {
                     await deleteTalk(assemblyId, existingTalk.id);
                     closeModal();
-                    renderAssemblyDetailsView(container, activeDay, options);
+                    renderAssemblyDetailsView(container, currentDay, options);
                 } catch (e) {
                     alert("Error deleting: " + e.message);
                 }

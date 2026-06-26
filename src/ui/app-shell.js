@@ -21,14 +21,17 @@ const getNavButton = ({ id, label, iconPath, currentView, activeView, sidebarCol
 };
 
 export const getAppShellMarkup = ({ currentUser, currentView, currentDesign, sidebarCollapsed }) => {
-  const isTactician = currentDesign === 'tactician';
+  const safeDesign = typeof currentDesign === 'string' && currentDesign.length > 0 ? currentDesign : 'default';
+  const userLabel = currentUser?.displayName || currentUser?.email || 'User';
+  const userInitial = userLabel.charAt(0).toUpperCase();
+  const isTactician = safeDesign === 'tactician';
   const sidebarStyles = isTactician 
     ? 'bg-[var(--tactician-surface-low)] border-none' 
     : 'bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700';
 
   return `
     <div class="flex h-screen bg-slate-50 dark:bg-slate-900 font-sans overflow-hidden transition-colors duration-300 ${isTactician ? 'tactician-design' : ''}">
-      <aside class="${sidebarCollapsed ? 'w-24' : 'w-64'} ${sidebarStyles} flex flex-col hidden md:flex z-20 transition-all duration-300 ${currentDesign === 'foundation' ? 'foundation-sidebar' : ''}">
+      <aside class="${sidebarCollapsed ? 'w-24' : 'w-64'} ${sidebarStyles} flex flex-col hidden md:flex z-20 transition-all duration-300 ${safeDesign === 'foundation' ? 'foundation-sidebar' : ''}">
         <div class="h-16 flex items-center ${sidebarCollapsed ? 'px-3 justify-center' : 'px-6 justify-between'} border-b border-slate-100 dark:border-slate-700 gap-2">
             <div class="flex items-center ${sidebarCollapsed ? 'justify-center' : 'gap-3'} min-w-0">
                 <div class="h-8 w-8 bg-orange-500 rounded-lg flex items-center justify-center shadow-sm text-white shrink-0">
@@ -54,11 +57,11 @@ export const getAppShellMarkup = ({ currentUser, currentView, currentDesign, sid
         <div class="${sidebarCollapsed ? 'p-3' : 'p-4'} border-t border-slate-100 dark:border-slate-700">
              <div class="flex items-center ${sidebarCollapsed ? 'justify-center' : 'gap-3'} p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors cursor-pointer" id="user-profile">
                 <div class="h-8 w-8 rounded-full bg-slate-200 dark:bg-slate-600 flex items-center justify-center text-slate-500 dark:text-slate-300 text-xs font-bold shrink-0">
-                    ${(currentUser.displayName || currentUser.email).charAt(0).toUpperCase()}
+                    ${userInitial}
                 </div>
                 ${sidebarCollapsed ? '' : `<div class="flex-1 min-w-0">
-                    <p class="text-sm font-medium text-slate-700 dark:text-slate-200 truncate">${currentUser.displayName || 'User'}</p>
-                    <p class="text-xs text-slate-400 dark:text-slate-500 truncate">${currentUser.email}</p>
+                    <p class="text-sm font-medium text-slate-700 dark:text-slate-200 truncate">${userLabel}</p>
+                    <p class="text-xs text-slate-400 dark:text-slate-500 truncate">${currentUser?.email || ''}</p>
                 </div>`}
                 <button id="logout-btn" class="text-slate-400 hover:text-red-500 dark:hover:text-red-400 transition-colors" title="Logout">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
@@ -68,7 +71,7 @@ export const getAppShellMarkup = ({ currentUser, currentView, currentDesign, sid
       </aside>
 
       <!-- Mobile Header -->
-       <div class="md:hidden fixed top-0 left-0 right-0 h-14 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between px-3 z-30 transition-colors duration-300 ${currentDesign === 'foundation' ? 'foundation-header' : ''}">
+       <div class="md:hidden fixed top-0 left-0 right-0 h-14 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between px-3 z-30 transition-colors duration-300 ${safeDesign === 'foundation' ? 'foundation-header' : ''}">
             <div class="flex items-center gap-2">
                 <div class="h-7 w-7 bg-orange-500 rounded-md flex items-center justify-center text-white shadow-sm">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
@@ -107,7 +110,7 @@ export const getAppShellMarkup = ({ currentUser, currentView, currentDesign, sid
                     <span class="hidden dark:inline">Light Mode</span>
                 </button>
                 <button id="mob-design-toggle" class="w-full text-left px-3 py-2.5 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-3">
-                    <span>Design: ${currentDesign.charAt(0).toUpperCase() + currentDesign.slice(1)}</span>
+                    <span>Design: ${safeDesign.charAt(0).toUpperCase() + safeDesign.slice(1)}</span>
                 </button>
               </div>
               <div class="mt-auto border-t border-slate-100 dark:border-slate-700 pt-2">
@@ -117,7 +120,7 @@ export const getAppShellMarkup = ({ currentUser, currentView, currentDesign, sid
        </div>
 
       <main class="flex-1 flex flex-col min-w-0 overflow-hidden relative transition-colors duration-300">
-         <header class="hidden md:flex h-16 ${isTactician ? 'bg-transparent border-none' : 'bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700'} items-center justify-between px-6 md:px-8 transition-colors duration-300 ${currentDesign === 'foundation' ? 'foundation-header' : ''}">
+         <header class="hidden md:flex h-16 ${isTactician ? 'bg-transparent border-none' : 'bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700'} items-center justify-between px-6 md:px-8 transition-colors duration-300 ${safeDesign === 'foundation' ? 'foundation-header' : ''}">
              <div class="flex-1 max-w-lg">
                  <div class="relative">
                      <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -147,5 +150,6 @@ export const getAppShellMarkup = ({ currentUser, currentView, currentDesign, sid
     <div id="modal-container" class="fixed inset-0 z-50 flex items-center justify-center transition-opacity" style="display:none; background: ${isTactician ? 'rgba(25, 28, 29, 0.4)' : 'rgba(0, 0, 0, 0.4)'}; backdrop-filter: blur(20px);"></div>
   `;
 };
+
 
 
