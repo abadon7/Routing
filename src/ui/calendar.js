@@ -1,6 +1,6 @@
 import { addDays, format, parseISO, addMonths, subMonths } from "date-fns";
 import { getServiceWeeks, getStableServiceWeekDate, getWeekKeyUtc } from "../shared/calendar.js";
-import { getActivitiesForMonth, updateActivity, getLastTwoVisitsBefore } from "../db.js";
+import { getActivitiesForMonth, updateActivity, deleteActivity, getLastTwoVisitsBefore } from "../db.js";
 
 export const renderCalendarView = async (container, options) => {
     const currentMonth = options.getCurrentMonth();
@@ -407,4 +407,3 @@ const loadMonthActivities = async (weeks, options) => {
     }
     return count;
 };
-
