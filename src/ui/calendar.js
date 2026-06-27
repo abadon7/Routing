@@ -186,11 +186,19 @@ export const renderCalendarView = async (container, options) => {
                 ['Date', 'Type', 'Congregation', 'Notes'].join(',')
             ];
 
-            // Order by date as per weeks
+            // Order by date as per weeks and expand multi-week activities
             const activityMap = {};
             activities.forEach(a => {
-                const key = getWeekKeyUtc(a.week_start.toDate());
-                activityMap[key] = a;
+                const startDate = a.week_start.toDate();
+                const duration = a.duration_weeks || 1;
+                for (let i = 0; i < duration; i++) {
+                    const weekDate = addDays(startDate, i * 7);
+                    const weekKey = format(weekDate, 'yyyy-MM-dd');
+                    activityMap[weekKey] = {
+                        ...a,
+                        span_week_index: i
+                    };
+                }
             });
 
             weeks.forEach(tuesday => {
@@ -198,9 +206,11 @@ export const renderCalendarView = async (container, options) => {
                 const a = activityMap[weekKey];
                 const dateStr = format(tuesday, 'yyyy-MM-dd');
                 if (a) {
+                    const labelSuffix = a.duration_weeks > 1 ? ` (Week ${a.span_week_index + 1}/${a.duration_weeks})` : '';
+                    const typeLabel = `${a.type || ''}${labelSuffix}`;
                     const row = [
                         dateStr,
-                        `"${a.type || ''}"`,
+                        `"${typeLabel}"`,
                         `"${a.congregationName || ''}"`,
                         `"${(a.notes || '').replace(/"/g, '""')}"`
                     ];
@@ -311,13 +321,20 @@ const loadMonthActivities = async (weeks, options) => {
 
     try {
         const activities = await getActivitiesForMonth(currentUser.uid, rangeStart, rangeEnd);
-        count = activities.length;
 
-        // Map activities by week_start key
+        // Map activities by week_start key and expand multi-week durations
         const activityMap = {};
         activities.forEach(a => {
-            const key = getWeekKeyUtc(a.week_start.toDate());
-            activityMap[key] = a;
+            const startDate = a.week_start.toDate();
+            const duration = a.duration_weeks || 1;
+            for (let i = 0; i < duration; i++) {
+                const weekDate = addDays(startDate, i * 7);
+                const weekKey = format(weekDate, 'yyyy-MM-dd');
+                activityMap[weekKey] = {
+                    ...a,
+                    span_week_index: i
+                };
+            }
         });
 
         weeks.forEach(tuesday => {
@@ -327,6 +344,7 @@ const loadMonthActivities = async (weeks, options) => {
             const actionEl = document.getElementById(`action-${weekKey}`);
 
             if (activity && activityEl && actionEl) {
+                count++;
                 const style = TYPE_STYLES[activity.type] || TYPE_STYLES['Congregation Visit'];
                 const badgeStyle = isTactician 
                     ? (TACTICIAN_BADGE_STYLES[activity.type] || TACTICIAN_BADGE_STYLES['Default'])
@@ -338,6 +356,7 @@ const loadMonthActivities = async (weeks, options) => {
                         <span class="${isTactician ? TACTICIAN_BADGE + ' ' + badgeStyle.bg + ' ' + badgeStyle.text : 'inline-block px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ' + style.bg + ' ' + style.text + ' ' + style.border}">${activity.type}</span>
                         <span class="text-sm font-bold ${isTactician ? 'text-slate-900 dark:text-white' : 'text-slate-800 dark:text-slate-200'}">
                             ${activity.type === 'Congregation Visit' ? (activity.congregationName || 'Visit') : activity.type}
+                            ${activity.duration_weeks > 1 ? `<span class="text-xs font-normal text-slate-400 dark:text-slate-500 ml-1.5">(Week ${activity.span_week_index + 1}/${activity.duration_weeks})</span>` : ''}
                         </span>
                     </div>
                 `;
@@ -346,7 +365,15 @@ const loadMonthActivities = async (weeks, options) => {
                     activityHtml += `<span class="block text-xs ${isTactician ? 'text-slate-500' : 'text-slate-500 dark:text-slate-400'} mt-1 ml-1 pl-3 border-l ${isTactician ? 'border-orange-500/30' : 'border-slate-100 dark:border-slate-700/50'} font-medium">${activity.notes}</span>`;
                 }
 
-                const actSerial = JSON.stringify({ id: activity.id, type: activity.type, congregation_id: activity.congregation_id || null, congregationName: activity.congregationName || null, notes: activity.notes || '' });
+                const actSerial = JSON.stringify({
+                    id: activity.id,
+                    type: activity.type,
+                    congregation_id: activity.congregation_id || null,
+                    congregationName: activity.congregationName || null,
+                    notes: activity.notes || '',
+                    week_start: getWeekKeyUtc(activity.week_start.toDate()),
+                    duration_weeks: activity.duration_weeks || 1
+                });
 
                 activityEl.innerHTML = `
                     <div class="draggable-activity cursor-move flex items-center gap-3 w-full p-2 -m-2 rounded-xl hover:bg-slate-100/50 dark:hover:bg-slate-700/50 transition-all" draggable="true" data-activity='${actSerial.replace(/'/g, "&apos;")}'>
@@ -363,14 +390,22 @@ const loadMonthActivities = async (weeks, options) => {
                     getLastTwoVisitsBefore(activity.congregation_id, tuesday).then(({ last, previous }) => {
                         if (!last || !activityEl) return;
 
+                        let targetLast = last;
+                        let targetPrevious = previous;
+                        if (last.id === activity.id) {
+                            if (!previous) return; // No true previous visit
+                            targetLast = previous;
+                            targetPrevious = null; // Don't show trend comparison
+                        }
+
                         const today = new Date(weekKey);
-                        const daysSinceLast = (today - last.date) / (1000 * 60 * 60 * 24);
+                        const daysSinceLast = (today - targetLast.date) / (1000 * 60 * 60 * 24);
                         const moSinceLast = (daysSinceLast / 30.44).toFixed(1);
-                        const lastDateStr = format(last.date, 'MMM d, yyyy');
+                        const lastDateStr = format(targetLast.date, 'MMM d, yyyy');
 
                         let comparisonHtml = '';
-                        if (previous) {
-                            const prevIntervalDays = (last.date - previous.date) / (1000 * 60 * 60 * 24);
+                        if (targetPrevious) {
+                            const prevIntervalDays = (targetLast.date - targetPrevious.date) / (1000 * 60 * 60 * 24);
                             const prevIntervalMo = (prevIntervalDays / 30.44).toFixed(1);
                             const isOverdue = daysSinceLast > prevIntervalDays;
                             const diffMo = Math.abs((daysSinceLast - prevIntervalDays) / 30.44).toFixed(1);

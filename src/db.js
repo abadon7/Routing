@@ -28,7 +28,10 @@ export const updateCongregation = async (id, data) => {
 
 // Activities — each activity represents a full Tue-Sun service week
 export const getActivitiesForMonth = async (userId, monthStart, monthEnd) => {
-    const startTimestamp = Timestamp.fromDate(monthStart);
+    // Buffer start date back by 6 weeks (42 days) to fetch activities that started
+    // in the previous month but might span into the current month.
+    const bufferStart = new Date(monthStart.getTime() - 42 * 24 * 60 * 60 * 1000);
+    const startTimestamp = Timestamp.fromDate(bufferStart);
     const endTimestamp = Timestamp.fromDate(monthEnd);
 
     const q = query(

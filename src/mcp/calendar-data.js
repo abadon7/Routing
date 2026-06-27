@@ -23,9 +23,10 @@ const getDb = (adminConfig) => {
 
 export const getActivitiesForRange = async (adminConfig, userId, rangeStart, rangeEnd) => {
     const db = getDb(adminConfig);
+    const bufferStart = new Date(rangeStart.getTime() - 42 * 24 * 60 * 60 * 1000);
     const snapshot = await db.collection('activities')
         .where('user_id', '==', userId)
-        .where('week_start', '>=', Timestamp.fromDate(rangeStart))
+        .where('week_start', '>=', Timestamp.fromDate(bufferStart))
         .where('week_start', '<=', Timestamp.fromDate(rangeEnd))
         .orderBy('week_start')
         .get();
@@ -56,8 +57,9 @@ export const searchActivitiesForUser = async (adminConfig, userId, queryText, mo
     if (monthDate) {
         const rangeStart = startOfMonth(monthDate);
         const rangeEnd = endOfMonth(addMonths(monthDate, rangeMonths - 1));
+        const bufferStart = new Date(rangeStart.getTime() - 42 * 24 * 60 * 60 * 1000);
         ref = ref
-            .where('week_start', '>=', Timestamp.fromDate(rangeStart))
+            .where('week_start', '>=', Timestamp.fromDate(bufferStart))
             .where('week_start', '<=', Timestamp.fromDate(rangeEnd));
     }
 
