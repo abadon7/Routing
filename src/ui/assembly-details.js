@@ -1415,7 +1415,8 @@ const triggerPrint = (assembly, talks, activeDay, options, speakers) => {
                             <div>${t.theme || t.title || "—"}</div>
                             ${t.type ? `<div style="font-size: 7.5pt; font-weight: normal; color: #64748b; margin-top: 2px;">${t.type}</div>` : ""}
                         </td>
-                        <td class="speaker-col">${t.speakerName || "—"}</td>
+                        <td class="speaker-col">${(t.source && t.source.trim().toLowerCase() !== 'inperson')
+                        ? t.source : t.speakerName}</td>
                         <td class="duration-col" style="text-align: right; font-weight: 500;">${t.duration ? `${t.duration}m` : "—"}</td>
                         ${includeStatus ? `
                         <td class="status-col">
