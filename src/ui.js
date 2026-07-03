@@ -323,6 +323,17 @@ const openAssignModal = async (weekKey, calendarContainer, existingActivity) => 
         return { ...c, lastVisit, visitText, months };
     }));
 
+    // Sort by last visit: oldest first, never visited at the top
+    congsWithVisits.sort((a, b) => {
+        if (!a.lastVisit && !b.lastVisit) return a.name.localeCompare(b.name);
+        if (!a.lastVisit) return -1;
+        if (!b.lastVisit) return 1;
+        const dateA = a.lastVisit.date.getTime();
+        const dateB = b.lastVisit.date.getTime();
+        if (dateA !== dateB) return dateA - dateB;
+        return a.name.localeCompare(b.name);
+    });
+
     modal.innerHTML = `
         <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-lg p-6 sm:p-8 m-4 relative animate-fade-in-down transform transition-all border border-slate-100 dark:border-slate-700 max-h-[90vh] overflow-y-auto">
             <button id="close-modal" class="sticky top-2 float-right text-slate-300 dark:text-slate-500 hover:text-slate-500 dark:hover:text-slate-300 transition-colors p-2 rounded-full hover:bg-slate-50 dark:hover:bg-slate-700 z-10">

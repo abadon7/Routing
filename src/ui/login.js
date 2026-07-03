@@ -1,6 +1,6 @@
 export const renderLogin = ({ onLogin }) => {
-    const appContainer = document.querySelector('#app');
-    appContainer.innerHTML = `
+  const appContainer = document.querySelector('#app');
+  appContainer.innerHTML = `
     <div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900 font-sans transition-colors duration-300">
       <div class="bg-white dark:bg-slate-800 p-10 rounded-2xl shadow-xl w-full max-w-sm text-center border border-slate-100 dark:border-slate-700 transform transition-all hover:scale-[1.01]">
         <div class="mb-8 flex justify-center">
@@ -8,7 +8,7 @@ export const renderLogin = ({ onLogin }) => {
                 <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
             </div>
         </div>
-        <h1 class="text-3xl font-bold mb-2 text-slate-800 dark:text-white tracking-tight">Service Scheduler</h1>
+        <h1 class="text-3xl font-bold mb-2 text-slate-800 dark:text-white tracking-tight">Routing - CO planner</h1>
         <p class="text-slate-500 dark:text-slate-400 mb-8 text-sm">Organize your ministry efficiently.</p>
         
         <button id="google-login-btn" class="group flex items-center justify-center w-full bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 hover:border-blue-400 dark:hover:border-blue-500 rounded-xl shadow-sm hover:shadow-md px-4 py-3 text-sm font-medium text-slate-700 dark:text-slate-200 hover:text-blue-700 dark:hover:text-blue-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200">
@@ -24,7 +24,7 @@ export const renderLogin = ({ onLogin }) => {
       </div>
     </div>
   `;
-    document.getElementById('google-login-btn').addEventListener('click', async () => {
-        try { await onLogin(); } catch (e) { alert("Login failed: " + e.message); }
-    });
+  document.getElementById('google-login-btn').addEventListener('click', async () => {
+    try { await onLogin(); } catch (e) { alert("Login failed: " + e.message); }
+  });
 };

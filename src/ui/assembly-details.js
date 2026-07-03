@@ -485,7 +485,7 @@ export const renderAssemblyDetailsView = async (
                         t.congregation || "",
                     ];
                     return fields.some((f) => f.toLowerCase().includes(q));
-                  })
+                })
                 : dayTalks;
 
             return [...filteredTalks].sort((a, b) => {
@@ -1181,7 +1181,7 @@ const triggerPrint = (assembly, talks, activeDay, options, speakers) => {
         }
         .chairmen-container {
             display: grid;
-            grid-template-cols: 1fr 1fr;
+            grid-template-columns: 1fr 1fr;
             gap: 1rem;
             background-color: #f8fafc;
             border-radius: 8px;
@@ -1324,7 +1324,7 @@ const triggerPrint = (assembly, talks, activeDay, options, speakers) => {
     daysToPrint.forEach((dayNum, idx) => {
         const isFirst = idx === 0;
         const dayClass = isFirst ? "day-section" : "day-section page-break";
-        
+
         // Filter and sort talks for this day
         const dayTalks = talks.filter((t) => (t.day || 1) === dayNum);
         const sortedTalks = [...dayTalks].sort((a, b) => {
@@ -1343,7 +1343,7 @@ const triggerPrint = (assembly, talks, activeDay, options, speakers) => {
         }
 
         htmlMarkup += `<div class="${dayClass}">`;
-        
+
         if (isThreeDay) {
             htmlMarkup += `
                 <div class="day-title-container">
@@ -1430,31 +1430,78 @@ const triggerPrint = (assembly, talks, activeDay, options, speakers) => {
     htmlMarkup += `
     <div class="footer">
         <div>Program generated on ${new Date().toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}</div>
-        <div>Service Scheduler</div>
+        <div>Routing - CO planner</div>
     </div>
 </body>
 </html>`;
 
-    const printWindow = window.open("", "_blank");
-    if (!printWindow) {
-        alert("Pop-up blocker is preventing print preview. Please allow popups for this site.");
-        return;
-    }
-    
-    printWindow.document.write(htmlMarkup);
-    printWindow.document.close();
-
-    printWindow.onload = () => {
-        printWindow.focus();
-        printWindow.print();
+    const cleanupFrame = (frame) => {
+        if (!frame) return;
+        const removeFrame = () => frame.remove();
+        frame.contentWindow?.addEventListener("afterprint", removeFrame, { once: true });
+        setTimeout(removeFrame, 2000);
     };
 
-    setTimeout(() => {
-        if (printWindow.document.readyState === 'complete') {
+    const printWithFrame = () => {
+        const frame = document.createElement("iframe");
+        frame.setAttribute("aria-hidden", "true");
+        frame.tabIndex = -1;
+        frame.style.position = "fixed";
+        frame.style.right = "0";
+        frame.style.bottom = "0";
+        frame.style.width = "0";
+        frame.style.height = "0";
+        frame.style.border = "0";
+        frame.style.opacity = "0";
+        frame.srcdoc = htmlMarkup;
+
+        frame.addEventListener("load", () => {
+            const frameWindow = frame.contentWindow;
+            if (!frameWindow) {
+                frame.remove();
+                return;
+            }
+
+            cleanupFrame(frame);
+
+            setTimeout(() => {
+                try {
+                    frameWindow.focus();
+                    frameWindow.print();
+                } catch (error) {
+                    console.error("Frame print failed, falling back to popup print:", error);
+                    frame.remove();
+                    printWithPopup();
+                }
+            }, 100);
+        }, { once: true });
+
+        document.body.appendChild(frame);
+    };
+
+    const printWithPopup = () => {
+        const printWindow = window.open("", "_blank");
+        if (!printWindow) {
+            alert("Pop-up blocker is preventing print preview. Please allow popups for this site.");
+            return;
+        }
+
+        printWindow.document.write(htmlMarkup);
+        printWindow.document.close();
+        printWindow.onload = () => {
             printWindow.focus();
             printWindow.print();
-        }
-    }, 500);
+        };
+
+        setTimeout(() => {
+            if (printWindow.document.readyState === "complete") {
+                printWindow.focus();
+                printWindow.print();
+            }
+        }, 500);
+    };
+
+    printWithFrame();
 };
 
 const renderPrintScheduleModal = (assembly, talks, activeDay, speakers) => {
@@ -1464,29 +1511,29 @@ const renderPrintScheduleModal = (assembly, talks, activeDay, speakers) => {
         "fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-[2px] animate-fade-in p-4";
 
     const isThreeDay = assembly.eventType === "Regional Convention (3 Days)";
-    
+
     let optionsHtml = "";
     if (isThreeDay) {
         optionsHtml = `
             <div class="space-y-3">
                 <label class="text-xs font-bold uppercase tracking-wider text-slate-400">Print Scope</label>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <label class="relative flex flex-col p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-orange-500 dark:hover:border-orange-500 cursor-pointer transition-all shadow-sm select-none group">
+                    <label data-print-scope-card="day" class="relative flex flex-col p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-orange-500 dark:hover:border-orange-500 cursor-pointer transition-all shadow-sm select-none group">
                         <input type="radio" name="print-scope" value="day" checked class="sr-only">
                         <div class="flex items-center justify-between mb-2">
                             <span class="font-bold text-slate-900 dark:text-white group-hover:text-orange-500 transition-colors">Current Day</span>
-                            <div class="w-4 h-4 rounded-full border border-slate-300 dark:border-slate-700 flex items-center justify-center">
+                            <div class="checked-ring w-4 h-4 rounded-full border-2 border-slate-300 dark:border-slate-600 flex items-center justify-center transition-all">
                                 <div class="w-1.5 h-1.5 bg-white rounded-full hidden checked-dot"></div>
                             </div>
                         </div>
                         <span class="text-xs text-slate-500 dark:text-slate-400">Print Day ${activeDay} schedule only</span>
                     </label>
 
-                    <label class="relative flex flex-col p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-orange-500 dark:hover:border-orange-500 cursor-pointer transition-all shadow-sm select-none group">
+                    <label data-print-scope-card="all" class="relative flex flex-col p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-orange-500 dark:hover:border-orange-500 cursor-pointer transition-all shadow-sm select-none group">
                         <input type="radio" name="print-scope" value="all" class="sr-only">
                         <div class="flex items-center justify-between mb-2">
                             <span class="font-bold text-slate-900 dark:text-white group-hover:text-orange-500 transition-colors">All Days</span>
-                            <div class="w-4 h-4 rounded-full border border-slate-300 dark:border-slate-700 flex items-center justify-center">
+                            <div class="checked-ring w-4 h-4 rounded-full border-2 border-slate-300 dark:border-slate-600 flex items-center justify-center transition-all">
                                 <div class="w-1.5 h-1.5 bg-white rounded-full hidden checked-dot"></div>
                             </div>
                         </div>
@@ -1542,26 +1589,43 @@ const renderPrintScheduleModal = (assembly, talks, activeDay, speakers) => {
 
     document.body.appendChild(modal);
 
-    const updateRadioStates = () => {
-        const radios = modal.querySelectorAll('input[name="print-scope"]');
-        radios.forEach(r => {
-            const label = r.closest('label');
-            const dot = label.querySelector('.checked-dot');
-            if (r.checked) {
-                label.classList.add('border-orange-500', 'ring-2', 'ring-orange-500/20');
+    const syncPrintScopeUI = () => {
+        modal.querySelectorAll('input[name="print-scope"]').forEach((radio) => {
+            const label = radio.closest('label');
+            const dot = label?.querySelector('.checked-dot');
+            const ring = label?.querySelector('.checked-ring');
+            if (!label || !dot || !ring) return;
+
+            if (radio.checked) {
+                label.classList.add('border-orange-500', 'ring-2', 'ring-orange-500/20', 'bg-orange-50/70', 'dark:bg-orange-900/20');
+                ring.classList.add('bg-orange-500', 'border-orange-500');
+                ring.classList.remove('border-slate-300', 'dark:border-slate-600');
                 dot.classList.remove('hidden');
             } else {
-                label.classList.remove('border-orange-500', 'ring-2', 'ring-orange-500/20');
+                label.classList.remove('border-orange-500', 'ring-2', 'ring-orange-500/20', 'bg-orange-50/70', 'dark:bg-orange-900/20');
+                ring.classList.remove('bg-orange-500', 'border-orange-500');
+                ring.classList.add('border-slate-300', 'dark:border-slate-600');
                 dot.classList.add('hidden');
             }
         });
     };
 
     if (isThreeDay) {
-        modal.querySelectorAll('input[name="print-scope"]').forEach(r => {
-            r.addEventListener('change', updateRadioStates);
+        modal.querySelectorAll('input[name="print-scope"]').forEach((radio) => {
+            radio.addEventListener('change', syncPrintScopeUI);
         });
-        updateRadioStates();
+
+        modal.querySelectorAll('[data-print-scope-card]').forEach((label) => {
+            label.addEventListener('click', () => {
+                const radio = label.querySelector('input[name="print-scope"]');
+                if (radio && !radio.checked) {
+                    radio.checked = true;
+                    syncPrintScopeUI();
+                }
+            });
+        });
+
+        requestAnimationFrame(syncPrintScopeUI);
     }
 
     const close = () => modal.remove();
@@ -1575,7 +1639,7 @@ const renderPrintScheduleModal = (assembly, talks, activeDay, speakers) => {
         const scope = modal.querySelector('input[name="print-scope"]:checked')?.value || 'all';
         const includeChairmen = document.getElementById("print-include-chairmen").checked;
         const includeStatus = document.getElementById("print-include-status").checked;
-        
+
         close();
         triggerPrint(assembly, talks, activeDay, { scope, includeChairmen, includeStatus }, speakers);
     });
@@ -2914,8 +2978,5 @@ const renderBulkImportTalksModal = async (
             }, 1200);
         });
 };
-
-
-
 
 
