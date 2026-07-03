@@ -52,7 +52,8 @@ export const normalizeActivityRecord = (activity) => {
             week_start: null,
             type: activity?.type || '',
             congregationName: activity?.congregationName || '',
-            notes: activity?.notes || ''
+            notes: activity?.notes || '',
+            duration_weeks: activity?.duration_weeks || 1
         };
     }
 
@@ -61,7 +62,8 @@ export const normalizeActivityRecord = (activity) => {
         week_start: getWeekKeyUtc(weekStart),
         type: activity.type || '',
         congregationName: activity.congregationName || '',
-        notes: activity.notes || ''
+        notes: activity.notes || '',
+        duration_weeks: activity.duration_weeks || 1
     };
 };
 
@@ -70,7 +72,21 @@ export const mapActivitiesByWeek = (activities) => {
     activities.forEach((activity) => {
         const normalized = normalizeActivityRecord(activity);
         if (normalized.week_start) {
-            map[normalized.week_start] = normalized;
+            const parts = normalized.week_start.split('-');
+            const year = parseInt(parts[0], 10);
+            const month = parseInt(parts[1], 10) - 1;
+            const day = parseInt(parts[2], 10);
+            const startDate = new Date(Date.UTC(year, month, day, 12, 0, 0, 0));
+
+            const duration = normalized.duration_weeks || 1;
+            for (let i = 0; i < duration; i++) {
+                const weekDate = addDays(startDate, i * 7);
+                const weekKey = getWeekKeyUtc(weekDate);
+                map[weekKey] = {
+                    ...normalized,
+                    span_week_index: i
+                };
+            }
         }
     });
     return map;

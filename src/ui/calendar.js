@@ -50,11 +50,11 @@ export const renderCalendarView = async (container, options) => {
                 <div id="weeks-list" class="${isTactician ? '' : 'divide-y divide-slate-100 dark:divide-slate-700'}">
                     ${weeks.map((tuesday, index) => {
         const sunday = addDays(tuesday, 5);
-        const weekKey = format(tuesday, 'yyyy-MM-dd');
+        const weekKey = getWeekKeyUtc(tuesday);
 
         // Check if this is the current week (today falls between tuesday and sunday)
-        const todayStr = format(new Date(), 'yyyy-MM-dd');
-        const sunStr = format(sunday, 'yyyy-MM-dd');
+        const todayStr = getWeekKeyUtc(new Date());
+        const sunStr = getWeekKeyUtc(sunday);
         const isCurrentWeek = todayStr >= weekKey && todayStr <= sunStr;
 
         const rowBg = isCurrentWeek
@@ -133,10 +133,9 @@ export const renderCalendarView = async (container, options) => {
     `;
 
     // Month stats update
-    const updateStats = (count) => {
-        const total = weeks.length;
-        document.getElementById('stat-scheduled').textContent = `${count}`;
-        document.getElementById('stat-unassigned').textContent = `${total - count}`;
+    const updateStats = ({ scheduledEvents, openWeeks }) => {
+        document.getElementById('stat-scheduled').textContent = `${scheduledEvents}`;
+        document.getElementById('stat-unassigned').textContent = `${openWeeks}`;
     };
 
     // Month navigation
@@ -186,25 +185,38 @@ export const renderCalendarView = async (container, options) => {
                 ['Date', 'Type', 'Congregation', 'Notes'].join(',')
             ];
 
-            // Order by date as per weeks
+            // Order by date as per weeks and expand multi-week activities
             const activityMap = {};
             activities.forEach(a => {
-                const key = getWeekKeyUtc(a.week_start.toDate());
-                activityMap[key] = a;
+                const startDate = a.week_start.toDate();
+                const duration = a.duration_weeks || 1;
+                for (let i = 0; i < duration; i++) {
+                    const weekDate = addDays(startDate, i * 7);
+                    const weekKey = getWeekKeyUtc(weekDate);
+                    if (!activityMap[weekKey]) activityMap[weekKey] = [];
+                    activityMap[weekKey].push({
+                        ...a,
+                        span_week_index: i
+                    });
+                }
             });
 
             weeks.forEach(tuesday => {
-                const weekKey = format(tuesday, 'yyyy-MM-dd');
-                const a = activityMap[weekKey];
+                const weekKey = getWeekKeyUtc(tuesday);
+                const weekActivities = activityMap[weekKey] || [];
                 const dateStr = format(tuesday, 'yyyy-MM-dd');
-                if (a) {
-                    const row = [
-                        dateStr,
-                        `"${a.type || ''}"`,
-                        `"${a.congregationName || ''}"`,
-                        `"${(a.notes || '').replace(/"/g, '""')}"`
-                    ];
-                    csvRows.push(row.join(','));
+                if (weekActivities.length) {
+                    weekActivities.forEach(a => {
+                        const labelSuffix = a.duration_weeks > 1 ? ` (Week ${a.span_week_index + 1}/${a.duration_weeks})` : '';
+                        const typeLabel = `${a.type || ''}${labelSuffix}`;
+                        const row = [
+                            dateStr,
+                            `"${typeLabel}"`,
+                            `"${a.congregationName || ''}"`,
+                            `"${(a.notes || '').replace(/"/g, '""')}"`
+                        ];
+                        csvRows.push(row.join(','));
+                    });
                 } else {
                     csvRows.push([dateStr, 'Unassigned', '', ''].join(','));
                 }
@@ -241,7 +253,7 @@ export const renderCalendarView = async (container, options) => {
     weeksList.addEventListener('dragover', (e) => {
         e.preventDefault(); // Necessary to allow dropping
         const dropzone = e.target.closest('.calendar-week-row');
-        if (dropzone && document.getElementById(`activity-${dropzone.dataset.week}`).textContent.includes('Empty week')) {
+        if (dropzone && draggedActivityData) {
             dropzone.classList.add('bg-orange-50/50', 'dark:bg-slate-700');
         }
     });
@@ -259,26 +271,22 @@ export const renderCalendarView = async (container, options) => {
         if (dropzone && draggedActivityData) {
             dropzone.classList.remove('bg-orange-50/50', 'dark:bg-slate-700');
             const targetWeekKey = dropzone.dataset.week;
-            const targetEmpty = document.getElementById(`activity-${targetWeekKey}`).textContent.includes('Empty week');
-
-            if (targetEmpty) {
-                const activityInfo = JSON.parse(draggedActivityData);
-                const targetDate = parseISO(targetWeekKey);
-                try {
-                    await updateActivity(activityInfo.id, { week_start: getStableServiceWeekDate(targetDate) });
-                    renderCalendarView(container, options);
-                } catch (err) {
-                    console.error('Error updating activity date:', err);
-                    alert('Failed to move activity.');
-                }
+            const activityInfo = JSON.parse(draggedActivityData);
+            const targetDate = parseISO(targetWeekKey);
+            try {
+                await updateActivity(activityInfo.id, { week_start: getStableServiceWeekDate(targetDate) });
+                renderCalendarView(container, options);
+            } catch (err) {
+                console.error('Error updating activity date:', err);
+                alert('Failed to move activity.');
             }
         }
         draggedActivityData = null;
     });
 
     // Load existing activities
-    const count = await loadMonthActivities(weeks, options);
-    updateStats(count);
+    const stats = await loadMonthActivities(weeks, options);
+    updateStats(stats);
 };
 
 const TYPE_STYLES = {
@@ -301,77 +309,115 @@ const TACTICIAN_BADGE_STYLES = {
     'Default': { bg: 'bg-[var(--tactician-surface-high)] text-[var(--tactician-on-surface-variant)]' }
 };
 
+const getActivitySerial = (activity) => JSON.stringify({
+    id: activity.id,
+    type: activity.type,
+    congregation_id: activity.congregation_id || null,
+    congregationName: activity.congregationName || null,
+    notes: activity.notes || '',
+    week_start: getWeekKeyUtc(activity.week_start.toDate()),
+    duration_weeks: activity.duration_weeks || 1
+}).replace(/'/g, "&apos;");
+
+const renderActivityCard = (activity, weekDate, isTactician) => {
+    const style = TYPE_STYLES[activity.type] || TYPE_STYLES['Congregation Visit'];
+    const badgeStyle = isTactician
+        ? (TACTICIAN_BADGE_STYLES[activity.type] || TACTICIAN_BADGE_STYLES['Default'])
+        : null;
+    const actSerial = getActivitySerial(activity);
+    const weekKey = getWeekKeyUtc(weekDate);
+    const label = activity.type === 'Congregation Visit' ? (activity.congregationName || 'Visit') : activity.type;
+    const durationLabel = activity.duration_weeks > 1
+        ? `<span class="text-xs font-normal text-slate-400 dark:text-slate-500 ml-1.5">(Week ${activity.span_week_index + 1}/${activity.duration_weeks})</span>`
+        : '';
+    const noteHtml = activity.notes
+        ? `<span class="block text-xs ${isTactician ? 'text-slate-500' : 'text-slate-500 dark:text-slate-400'} mt-1 ml-1 pl-3 border-l ${isTactician ? 'border-orange-500/30' : 'border-slate-100 dark:border-slate-700/50'} font-medium">${activity.notes}</span>`
+        : '';
+
+    return `
+        <div class="draggable-activity cursor-move flex items-start gap-3 w-full p-2 rounded-xl hover:bg-slate-100/50 dark:hover:bg-slate-700/50 transition-all" draggable="true" data-activity='${actSerial}'>
+            <div class="cursor-grab active:cursor-grabbing text-slate-300 dark:text-slate-600 hover:text-slate-500 px-1 pt-0.5 shrink-0">
+                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"/></svg>
+            </div>
+            <div class="flex-1 min-w-0 activity-main" data-activity-id="${activity.id}">
+                <div class="flex flex-wrap items-center gap-2">
+                    <span class="${isTactician ? TACTICIAN_BADGE + ' ' + badgeStyle.bg + ' ' + badgeStyle.text : 'inline-block px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ' + style.bg + ' ' + style.text + ' ' + style.border}">${activity.type}</span>
+                    <span class="text-sm font-bold ${isTactician ? 'text-slate-900 dark:text-white' : 'text-slate-800 dark:text-slate-200'}">${label}${durationLabel}</span>
+                </div>
+                ${noteHtml}
+            </div>
+            <div class="flex items-center justify-end gap-1.5 shrink-0">
+                <button class="edit-btn p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700/50 rounded-lg transition-all" title="Edit" data-week="${weekKey}" data-activity='${actSerial}'>
+                   <svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                </button>
+                <button class="delete-btn p-1.5 text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-lg transition-all" title="Remove" data-id="${activity.id}" data-type="calendar">
+                   <svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                </button>
+            </div>
+        </div>`;
+};
+
 const loadMonthActivities = async (weeks, options) => {
     const isTactician = options.currentDesign === 'tactician';
     const currentUser = options.getCurrentUser();
-    if (!currentUser || weeks.length === 0) return 0;
+    if (!currentUser || weeks.length === 0) return { scheduledEvents: 0, openWeeks: weeks.length };
     const rangeStart = weeks[0];
     const rangeEnd = addDays(weeks[weeks.length - 1], 5);
-    let count = 0;
+    let scheduledEvents = 0;
+    let occupiedWeeks = 0;
 
     try {
         const activities = await getActivitiesForMonth(currentUser.uid, rangeStart, rangeEnd);
-        count = activities.length;
-
-        // Map activities by week_start key
         const activityMap = {};
         activities.forEach(a => {
-            const key = getWeekKeyUtc(a.week_start.toDate());
-            activityMap[key] = a;
+            const startDate = a.week_start.toDate();
+            const duration = a.duration_weeks || 1;
+            for (let i = 0; i < duration; i++) {
+                const weekDate = addDays(startDate, i * 7);
+                const weekKey = getWeekKeyUtc(weekDate);
+                if (!activityMap[weekKey]) activityMap[weekKey] = [];
+                activityMap[weekKey].push({
+                    ...a,
+                    span_week_index: i
+                });
+            }
         });
 
         weeks.forEach(tuesday => {
-            const weekKey = format(tuesday, 'yyyy-MM-dd');
-            const activity = activityMap[weekKey];
+            const weekKey = getWeekKeyUtc(tuesday);
+            const weekActivities = activityMap[weekKey] || [];
             const activityEl = document.getElementById(`activity-${weekKey}`);
             const actionEl = document.getElementById(`action-${weekKey}`);
+            const mobileActionEl = document.getElementById(`action-mobile-${weekKey}`);
 
-            if (activity && activityEl && actionEl) {
-                const style = TYPE_STYLES[activity.type] || TYPE_STYLES['Congregation Visit'];
-                const badgeStyle = isTactician 
-                    ? (TACTICIAN_BADGE_STYLES[activity.type] || TACTICIAN_BADGE_STYLES['Default'])
-                    : null;
-                const isCompleted = new Date() > tuesday;
+            if (!activityEl || !actionEl) return;
 
-                let activityHtml = `
-                    <div class="flex items-center gap-3">
-                        <span class="${isTactician ? TACTICIAN_BADGE + ' ' + badgeStyle.bg + ' ' + badgeStyle.text : 'inline-block px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ' + style.bg + ' ' + style.text + ' ' + style.border}">${activity.type}</span>
-                        <span class="text-sm font-bold ${isTactician ? 'text-slate-900 dark:text-white' : 'text-slate-800 dark:text-slate-200'}">
-                            ${activity.type === 'Congregation Visit' ? (activity.congregationName || 'Visit') : activity.type}
-                        </span>
-                    </div>
-                `;
+            if (weekActivities.length) {
+                scheduledEvents += weekActivities.length;
+                occupiedWeeks++;
+                activityEl.innerHTML = `<div class="space-y-2">${weekActivities.map(activity => renderActivityCard(activity, tuesday, isTactician)).join('')}</div>`;
 
-                if (activity.notes) {
-                    activityHtml += `<span class="block text-xs ${isTactician ? 'text-slate-500' : 'text-slate-500 dark:text-slate-400'} mt-1 ml-1 pl-3 border-l ${isTactician ? 'border-orange-500/30' : 'border-slate-100 dark:border-slate-700/50'} font-medium">${activity.notes}</span>`;
-                }
-
-                const actSerial = JSON.stringify({ id: activity.id, type: activity.type, congregation_id: activity.congregation_id || null, congregationName: activity.congregationName || null, notes: activity.notes || '' });
-
-                activityEl.innerHTML = `
-                    <div class="draggable-activity cursor-move flex items-center gap-3 w-full p-2 -m-2 rounded-xl hover:bg-slate-100/50 dark:hover:bg-slate-700/50 transition-all" draggable="true" data-activity='${actSerial.replace(/'/g, "&apos;")}'>
-                        <div class="cursor-grab active:cursor-grabbing text-slate-300 dark:text-slate-600 hover:text-slate-500 px-1 shrink-0">
-                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"/></svg>
-                        </div>
-                        <div class="flex-1">
-                            ${activityHtml}
-                        </div>
-                    </div>
-                `;
-
-                if (activity.type === 'Congregation Visit' && activity.congregation_id) {
+                weekActivities.forEach(activity => {
+                    if (activity.type !== 'Congregation Visit' || !activity.congregation_id) return;
                     getLastTwoVisitsBefore(activity.congregation_id, tuesday).then(({ last, previous }) => {
                         if (!last || !activityEl) return;
 
+                        let targetLast = last;
+                        let targetPrevious = previous;
+                        if (last.id === activity.id) {
+                            if (!previous) return;
+                            targetLast = previous;
+                            targetPrevious = null;
+                        }
+
                         const today = new Date(weekKey);
-                        const daysSinceLast = (today - last.date) / (1000 * 60 * 60 * 24);
+                        const daysSinceLast = (today - targetLast.date) / (1000 * 60 * 60 * 24);
                         const moSinceLast = (daysSinceLast / 30.44).toFixed(1);
-                        const lastDateStr = format(last.date, 'MMM d, yyyy');
+                        const lastDateStr = format(targetLast.date, 'MMM d, yyyy');
 
                         let comparisonHtml = '';
-                        if (previous) {
-                            const prevIntervalDays = (last.date - previous.date) / (1000 * 60 * 60 * 24);
-                            const prevIntervalMo = (prevIntervalDays / 30.44).toFixed(1);
+                        if (targetPrevious) {
+                            const prevIntervalDays = (targetLast.date - targetPrevious.date) / (1000 * 60 * 60 * 24);
                             const isOverdue = daysSinceLast > prevIntervalDays;
                             const diffMo = Math.abs((daysSinceLast - prevIntervalDays) / 30.44).toFixed(1);
                             const trendColor = isOverdue ? 'text-red-500' : 'text-green-500';
@@ -383,27 +429,17 @@ const loadMonthActivities = async (weeks, options) => {
                         const note = document.createElement('span');
                         note.className = `block text-[10px] ${isTactician ? 'text-orange-600 font-bold display-font' : 'text-orange-500/90 font-semibold'} mt-1 ml-7`;
                         note.innerHTML = `<span class="opacity-70 uppercase text-[9px] tracking-widest mr-1">Previously:</span> ${lastDateStr} · ${moSinceLast}mo${comparisonHtml ? ' · ' + comparisonHtml : ''}`;
-                        activityEl.querySelector('.draggable-activity > .flex-1').appendChild(note);
+                        activityEl.querySelector(`.activity-main[data-activity-id="${activity.id}"]`)?.appendChild(note);
                     }).catch(() => { });
-                }
-
-                const actionButtons = `
-                    <div class="flex items-center justify-end gap-1.5">
-                        <button class="edit-btn p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700/50 rounded-lg transition-all" title="Edit" data-week="${weekKey}" data-activity='${actSerial.replace(/'/g, "&apos;")}'>
-                           <svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
-                        </button>
-                        <button class="delete-btn p-1.5 text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-lg transition-all" title="Remove" data-id="${activity.id}" data-type="calendar">
-                           <svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                        </button>
-                    </div>`;
-                actionEl.innerHTML = actionButtons;
-                // Also update the mobile action area
-                const mobileActionEl = document.getElementById(`action-mobile-${weekKey}`);
-                if (mobileActionEl) mobileActionEl.innerHTML = actionButtons;
+                });
             }
+
+            const addButton = `<button class="assign-btn inline-flex items-center justify-center ${isTactician ? 'tactile-button-primary scale-90 opacity-0 group-hover:opacity-100 group-hover:scale-100' : 'px-3 py-1.5 text-[11px] font-bold text-white bg-slate-800 dark:bg-slate-700 hover:bg-orange-600 dark:hover:bg-orange-500 rounded-md shadow-sm'} transition-all" data-week="${weekKey}">Add Event</button>`;
+            actionEl.innerHTML = addButton;
+            if (mobileActionEl && weekActivities.length) mobileActionEl.innerHTML = addButton;
         });
     } catch (err) {
         console.error("Error loading activities:", err);
     }
-    return count;
+    return { scheduledEvents, openWeeks: weeks.length - occupiedWeeks };
 };

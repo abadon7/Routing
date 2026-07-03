@@ -305,10 +305,11 @@ const renderAssemblyModal = async (container, assemblyToEdit = null) => renderAs
 const openAssignModal = async (weekKey, calendarContainer, existingActivity) => {
     const modal = document.getElementById('modal-container');
     const congregations = await getCongregations();
-    const tuesday = parseISO(weekKey);
+    const isEdit = !!existingActivity;
+    const targetWeekKey = isEdit ? existingActivity.week_start : weekKey;
+    const tuesday = parseISO(targetWeekKey);
     const sunday = addDays(tuesday, 5);
     const weekLabel = `${format(tuesday, 'MMMM d')} – ${format(sunday, 'MMMM d, yyyy')} `;
-    const isEdit = !!existingActivity;
 
     // Fetch last visits for custom dropdown
     const congsWithVisits = await Promise.all(congregations.map(async c => {
@@ -321,6 +322,17 @@ const openAssignModal = async (weekKey, calendarContainer, existingActivity) => 
         }
         return { ...c, lastVisit, visitText, months };
     }));
+
+    // Sort by last visit: oldest first, never visited at the top
+    congsWithVisits.sort((a, b) => {
+        if (!a.lastVisit && !b.lastVisit) return a.name.localeCompare(b.name);
+        if (!a.lastVisit) return -1;
+        if (!b.lastVisit) return 1;
+        const dateA = a.lastVisit.date.getTime();
+        const dateB = b.lastVisit.date.getTime();
+        if (dateA !== dateB) return dateA - dateB;
+        return a.name.localeCompare(b.name);
+    });
 
     modal.innerHTML = `
         <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-lg p-6 sm:p-8 m-4 relative animate-fade-in-down transform transition-all border border-slate-100 dark:border-slate-700 max-h-[90vh] overflow-y-auto">
@@ -371,6 +383,21 @@ const openAssignModal = async (weekKey, calendarContainer, existingActivity) => 
                                     `}
                                 </div>
                             `).join('')}
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Duration (Weeks)</label>
+                    <div class="relative">
+                        <select name="duration_weeks" id="activity-duration" class="block w-full rounded-xl border-slate-300 dark:border-slate-600 shadow-sm focus:border-blue-500 focus:ring-blue-500 py-3 px-4 appearance-none bg-slate-50 dark:bg-slate-700 text-slate-900 dark:text-white">
+                            <option value="1" ${isEdit && existingActivity.duration_weeks === 1 ? 'selected' : ''}>1 Week</option>
+                            <option value="2" ${isEdit && existingActivity.duration_weeks === 2 ? 'selected' : ''}>2 Weeks</option>
+                            <option value="3" ${isEdit && existingActivity.duration_weeks === 3 ? 'selected' : ''}>3 Weeks</option>
+                            <option value="4" ${isEdit && existingActivity.duration_weeks === 4 ? 'selected' : ''}>4 Weeks</option>
+                        </select>
+                        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-500">
+                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
                         </div>
                     </div>
                 </div>
@@ -438,6 +465,7 @@ const openAssignModal = async (weekKey, calendarContainer, existingActivity) => 
     document.getElementById('activity-form').addEventListener('submit', async (e) => {
         e.preventDefault();
         const type = typeSelect.value;
+        const durationWeeks = parseInt(e.target.duration_weeks.value, 10) || 1;
         let congId = null, congName = null;
 
         if (type === 'Congregation Visit') {
@@ -454,7 +482,8 @@ const openAssignModal = async (weekKey, calendarContainer, existingActivity) => 
                     type,
                     congregation_id: congId,
                     congregationName: congName,
-                    notes: e.target.notes.value
+                    notes: e.target.notes.value,
+                    duration_weeks: durationWeeks
                 });
             } else {
                 await addActivity({
@@ -463,6 +492,7 @@ const openAssignModal = async (weekKey, calendarContainer, existingActivity) => 
                     congregation_id: congId,
                     congregationName: congName,
                     notes: e.target.notes.value,
+                    duration_weeks: durationWeeks,
                     user_id: currentUser.uid
                 });
             }
