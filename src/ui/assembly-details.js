@@ -639,14 +639,21 @@ export const renderAssemblyDetailsView = async (
                         <span class="text-[10px] text-slate-400 font-mono">${t.type || ""}</span>
                     </td>
                     <td class="px-3 py-3">
-                        ${t.speakerName
-                                ? `
+                        ${(t.source && t.source.trim().toLowerCase() !== 'inperson')
+                                ? `<div class="flex items-center gap-1.5">
+                                <div class="w-5 h-5 rounded-full flex items-center justify-center shrink-0 bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400">
+                                    <span class="material-symbols-outlined text-[14px]">${t.source.toLowerCase() === 'video' ? 'videocam' : 'cell_tower'}</span>
+                                </div>
+                                <span class="text-xs font-semibold text-purple-700 dark:text-purple-300">${t.source}</span>
+                            </div>`
+                                : (t.speakerName
+                                    ? `
                         <div class="flex items-center gap-1.5">
                             <div class="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold shrink-0 ${isLinked ? "bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400" : "bg-slate-100 dark:bg-slate-700 text-slate-500"}">${speakerInitials}</div>
                             <span class="text-xs font-semibold text-slate-900 dark:text-white truncate max-w-[90px] ${isLinked ? 'cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 hover:underline transition-colors active-speaker-link' : ''}" data-id="${t.speakerId || (t.email ? (speakers || []).find(s => s.email && s.email.toLowerCase() === t.email.toLowerCase())?.id : '')}" data-email="${t.email || ''}">${t.speakerName}</span>
                             ${isLinked ? '<span class="material-symbols-outlined text-[11px] text-blue-400" title="Linked to database">link</span>' : ""}
                         </div>`
-                                : `<span class="text-xs text-slate-400 italic">Unassigned</span>`
+                                    : `<span class="text-xs text-slate-400 italic">Unassigned</span>`)
                             }</td>
                     <td class="px-3 py-3 text-xs text-slate-500 dark:text-slate-400 whitespace-nowrap">${t.duration ? t.duration + " min" : "—"}</td>
                     <td class="px-3 py-3">
@@ -2978,5 +2985,4 @@ const renderBulkImportTalksModal = async (
             }, 1200);
         });
 };
-
 
