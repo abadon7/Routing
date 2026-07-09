@@ -10,6 +10,11 @@ import {
     deleteTalk,
     clearAssemblyTalks,
 } from "../db.js";
+
+const parseLocalDate = (yyyyMmDd) => {
+    const [y, m, d] = yyyyMmDd.split("-").map(Number);
+    return new Date(y, m - 1, d);
+};
 import { renderSpeakerDetailsModal } from "./speaker-details.js";
 import { getStoredDesign } from "./preferences.js";
 
@@ -466,9 +471,9 @@ export const renderAssemblyDetailsView = async (
             });
         };
 
-        const getDisplayedTalks = (selectedDay = activeDay) => {
+        const getDisplayedTalks = (selectedDay = activeDay, allDays = false) => {
             const dayTalks =
-                assembly.eventType === "Regional Convention (3 Days)"
+                !allDays && assembly.eventType === "Regional Convention (3 Days)"
                     ? talks.filter((t) => (t.day || 1) === selectedDay)
                     : talks;
 
@@ -585,8 +590,8 @@ export const renderAssemblyDetailsView = async (
             updateStatsScopeButtons();
         };
         const renderDaySchedule = (selectedDay = activeDay) => {
-            const displayedTalks = getDisplayedTalks(selectedDay);
             const isSearching = scheduleSearchQuery.trim().length > 0;
+            const displayedTalks = getDisplayedTalks(selectedDay, isSearching);
 
             if (displayedTalks.length === 0) {
                 list.innerHTML = isSearching
@@ -1120,6 +1125,15 @@ const triggerPrint = (assembly, talks, activeDay, options, speakers) => {
         }
     }
 
+    let dateRangeLabel = "";
+    if (assembly.date && daysToPrint.length > 1) {
+        const startDate = new Date(assembly.date);
+        const endDate = addDays(startDate, daysToPrint.length - 1);
+        const startStr = startDate.toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+        const endStr = endDate.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
+        dateRangeLabel = `${startStr} – ${endStr}`;
+    }
+
     let htmlMarkup = `<!doctype html>
 <html>
 <head>
@@ -1317,7 +1331,7 @@ const triggerPrint = (assembly, talks, activeDay, options, speakers) => {
             </div>
             ${assembly.date ? `
             <div class="meta-item">
-                <strong>Date:&nbsp;</strong> ${new Date(assembly.date).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                <strong>Date:&nbsp;</strong> ${dateRangeLabel || new Date(assembly.date).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
             </div>` : ''}
             ${assembly.location ? `
             <div class="meta-item">
@@ -1415,7 +1429,8 @@ const triggerPrint = (assembly, talks, activeDay, options, speakers) => {
                             <div>${t.theme || t.title || "—"}</div>
                             ${t.type ? `<div style="font-size: 7.5pt; font-weight: normal; color: #64748b; margin-top: 2px;">${t.type}</div>` : ""}
                         </td>
-                        <td class="speaker-col">${t.speakerName || "—"}</td>
+                        <td class="speaker-col">${(t.source && t.source.trim().toLowerCase() !== 'inperson')
+                        ? t.source : t.speakerName}</td>
                         <td class="duration-col" style="text-align: right; font-weight: 500;">${t.duration ? `${t.duration}m` : "—"}</td>
                         ${includeStatus ? `
                         <td class="status-col">
@@ -2362,7 +2377,10 @@ export const renderAssemblyModal = async (
                 ? assemblyToEdit.date
                 : assemblyToEdit.date.toDate?.() ||
                 new Date(assemblyToEdit.date);
-        dateStr = d.toISOString().split("T")[0];
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, "0");
+        const day = String(d.getDate()).padStart(2, "0");
+        dateStr = `${y}-${m}-${day}`;
     }
 
     modal.innerHTML = `
@@ -2439,7 +2457,7 @@ export const renderAssemblyModal = async (
 
                 const assemblyData = {
                     theme,
-                    date: new Date(dateVal),
+                    date: parseLocalDate(dateVal),
                     location: document.getElementById("asm-location").value,
                     eventType: document.getElementById("asm-event-type").value,
                     status: document.getElementById("asm-status").value,
@@ -2531,7 +2549,7 @@ const renderAddTalkModal = async (
                     <select id="talk-type" class="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none">
                         <option value="SC" ${isEdit && existingTalk.type === "SC" ? "selected" : ""}>Symposium (SC)</option>
                         <option value="AC" ${isEdit && existingTalk.type === "AC" ? "selected" : ""}>Address (AC)</option>
-                        <option value="OS" ${isEdit && existingTalk.type === "OS" ? "selected" : ""}>Song/Prayer (OS)</option>
+                        <option value="OS" ${isEdit && existingTalk.type === "OS" ? "selected" : ""}>Prayer (OS)</option>
                         <option value="TK" ${(isEdit && existingTalk.type === "TK") || !isEdit ? "selected" : ""}>Talk (TK)</option>
                     </select>
                 </div>
