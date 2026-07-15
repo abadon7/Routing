@@ -754,15 +754,11 @@ export const renderAssemblyDetailsView = async (
             document.querySelectorAll(".day-tab-btn").forEach((btn) => {
                 btn.addEventListener("click", () => {
                     const selectedDay = parseInt(btn.dataset.day);
-                    if (selectedDay !== activeDay) {
-                        activeDay = selectedDay;
-                        document.querySelectorAll(".day-tab-btn").forEach((tab) => {
-                            const isActive = Number(tab.dataset.day) === activeDay;
-                            tab.className = `day-tab-btn px-4 py-2 rounded-t-lg font-bold text-sm transition-colors border-b-2 ${isActive ? "text-blue-600 dark:text-blue-400 border-blue-600 font-bold bg-white dark:bg-slate-900" : "text-slate-500 dark:text-slate-400 border-transparent hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/50"}`;
+                    if (selectedDay !== activeDay && options.navigate) {
+                        options.navigate("assembly-details", {
+                            assemblyId: activeAssemblyId,
+                            day: selectedDay,
                         });
-                        renderProgramChairmen(activeDay);
-                        renderStats(activeDay);
-                        renderDaySchedule(activeDay);
                     }
                 });
             });
