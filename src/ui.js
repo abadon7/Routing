@@ -10,6 +10,7 @@ import { renderCongregationsView as renderCongregationsFeature } from "./ui/cong
 import { renderAssembliesView as renderAssembliesFeature } from "./ui/assemblies.js";
 import { renderCalendarView as renderCalendarFeature } from "./ui/calendar.js";
 import { renderAssemblyDetailsView as renderAssemblyDetailsFeature, renderAssemblyModal as renderAssemblyModalFeature } from "./ui/assembly-details.js";
+import { parseRoute, navigate, onRouteChange } from "./router.js";
 
 // State
 let currentUser = null;
@@ -22,9 +23,9 @@ let currentDesign = getStoredDesign();
 let sidebarCollapsed = localStorage.getItem('routing-sidebar-collapsed') === 'true';
 
 const setView = (v) => {
-    currentView = v;
-    document.getElementById('search-input').value = ''; // Clear search on nav
-    renderApp();
+    const searchInput = document.getElementById('search-input');
+    if (searchInput) searchInput.value = ''; // Clear search on nav
+    navigate(v);
 };
 
 const downloadCSV = (filename, content) => {
@@ -43,6 +44,9 @@ const downloadCSV = (filename, content) => {
 
 export const initApp = () => {
     initDesign(); // Initialize design on app start
+    onRouteChange(() => {
+        if (currentUser) renderApp();
+    });
     onAuthChange((user) => {
         currentUser = user;
         if (user) {
@@ -69,9 +73,29 @@ const toggleDesign = () => {
 };
 
 // ─── APP SHELL ───────────────────────────────────────────
-const renderApp = () => {
+const renderApp = async () => {
     initTheme(); // Initialize theme on render
     initDesign(); // Initialize design on render
+
+    // Sync state from the URL so direct links and reloads land on the right view
+    const route = parseRoute();
+    currentView = route.view;
+    activeAssemblyId = route.assemblyId || null;
+    const routeDay = route.day || 1;
+
+    // Guard against an invalid/missing assembly id in the URL
+    if (currentView === 'assembly-details' && activeAssemblyId) {
+        try {
+            const assembly = await getAssembly(activeAssemblyId);
+            if (!assembly) {
+                navigate('assemblies');
+                return;
+            }
+        } catch (err) {
+            navigate('assemblies');
+            return;
+        }
+    }
 
     const appContainer = document.querySelector('#app');
     appContainer.innerHTML = getAppShellMarkup({ currentUser, currentView, currentDesign, sidebarCollapsed });
@@ -131,9 +155,8 @@ const renderApp = () => {
             if (term.length > 2) {
                 renderSearchResults(document.getElementById('main-content'), term);
             } else if (term.length === 0) {
-                // Restore view
-                if (currentView === 'calendar') renderCalendarView(document.getElementById('main-content'));
-                else renderCongregationsView(document.getElementById('main-content'));
+                // Restore the current route (keeps shared links like an assembly detail)
+                renderApp();
             }
         }, 300);
     });
@@ -150,7 +173,7 @@ const renderApp = () => {
     } else if (currentView === 'reports') {
         renderReportsView(mainContent);
     } else if (currentView === 'assembly-details') {
-        renderAssemblyDetailsView(mainContent);
+        renderAssemblyDetailsView(mainContent, routeDay);
     }
 };
 
@@ -269,8 +292,7 @@ const renderAssembliesView = async (container) => renderAssembliesFeature(contai
     onCreateAssembly: (targetContainer) => renderAssemblyModal(targetContainer),
     onEditAssembly: (targetContainer, assembly) => renderAssemblyModal(targetContainer, assembly),
     onOpenAssembly: (assemblyId) => {
-        activeAssemblyId = assemblyId;
-        setView('assembly-details');
+        navigate('assembly-details', { assemblyId });
     },
 });
 
@@ -294,6 +316,7 @@ const renderCalendarView = async (container) => renderCalendarFeature(container,
 const renderAssemblyDetailsView = async (container, currentDay = 1) => renderAssemblyDetailsFeature(container, currentDay, {
     getActiveAssemblyId: () => activeAssemblyId,
     setView,
+    navigate,
     renderAssembliesView,
 });
 
