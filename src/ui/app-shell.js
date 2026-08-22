@@ -22,6 +22,7 @@ const getNavButton = ({ id, label, iconPath, currentView, activeView, sidebarCol
 
 export const getAppShellMarkup = ({ currentUser, currentView, currentDesign, sidebarCollapsed }) => {
   const safeDesign = typeof currentDesign === 'string' && currentDesign.length > 0 ? currentDesign : 'default';
+  const hasUser = !!currentUser;
   const userLabel = currentUser?.displayName || currentUser?.email || 'User';
   const userInitial = userLabel.charAt(0).toUpperCase();
   const isTactician = safeDesign === 'tactician';
@@ -31,6 +32,7 @@ export const getAppShellMarkup = ({ currentUser, currentView, currentDesign, sid
 
   return `
     <div class="flex h-screen bg-slate-50 dark:bg-slate-900 font-sans overflow-hidden transition-colors duration-300 ${isTactician ? 'tactician-design' : ''}">
+      ${hasUser ? `
       <aside class="${sidebarCollapsed ? 'w-24' : 'w-64'} ${sidebarStyles} flex flex-col hidden md:flex z-20 transition-all duration-300 ${safeDesign === 'foundation' ? 'foundation-sidebar' : ''}">
         <div class="h-16 flex items-center ${sidebarCollapsed ? 'px-3 justify-center' : 'px-6 justify-between'} border-b border-slate-100 dark:border-slate-700 gap-2">
             <div class="flex items-center ${sidebarCollapsed ? 'justify-center' : 'gap-3'} min-w-0">
@@ -69,6 +71,7 @@ export const getAppShellMarkup = ({ currentUser, currentView, currentDesign, sid
              </div>
         </div>
       </aside>
+      ` : ''}
 
       <!-- Mobile Header -->
        <div class="md:hidden fixed top-0 left-0 right-0 h-14 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between px-3 z-30 transition-colors duration-300 ${safeDesign === 'foundation' ? 'foundation-header' : ''}">
@@ -82,12 +85,17 @@ export const getAppShellMarkup = ({ currentUser, currentView, currentDesign, sid
                 <button id="mob-design-toggle-head" class="p-1.5 text-slate-500 dark:text-slate-400">
                     <span class="material-symbols-outlined text-xl">palette</span>
                 </button>
+                ${hasUser ? `
                 <button id="mobile-menu-btn" class="text-slate-500 dark:text-slate-400 p-1.5 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-lg">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"/></svg>
                 </button>
+                ` : `
+                <button id="mob-guest-login-btn" class="bg-orange-500 hover:bg-orange-600 text-white rounded-lg px-3 py-1.5 text-xs font-bold transition-all shadow-md ml-1">Log In</button>
+                `}
             </div>
        </div>
 
+       ${hasUser ? `
        <div id="mobile-menu" class="md:hidden fixed inset-0 bg-slate-900/50 dark:bg-slate-900/80 z-40 hidden" style="display:none">
           <div class="absolute right-0 top-0 bottom-0 w-64 bg-white dark:bg-slate-800 shadow-xl flex flex-col p-3 animate-fade-in-down transition-colors duration-300">
               <div class="flex items-center justify-between p-3 border-b border-slate-100 dark:border-slate-700 mb-2">
@@ -118,9 +126,11 @@ export const getAppShellMarkup = ({ currentUser, currentView, currentDesign, sid
               </div>
           </div>
        </div>
+       ` : ''}
 
       <main class="flex-1 flex flex-col min-w-0 overflow-hidden relative transition-colors duration-300">
          <header class="hidden md:flex h-16 ${isTactician ? 'bg-transparent border-none' : 'bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700'} items-center justify-between px-6 md:px-8 transition-colors duration-300 ${safeDesign === 'foundation' ? 'foundation-header' : ''}">
+             ${hasUser ? `
              <div class="flex-1 max-w-lg">
                  <div class="relative">
                      <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -129,6 +139,14 @@ export const getAppShellMarkup = ({ currentUser, currentView, currentDesign, sid
                      <input type="text" id="search-input" class="block w-full pl-10 pr-3 py-2 ${isTactician ? 'border-none bg-[var(--tactician-surface-high)] shadow-inner' : 'border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700'} rounded-lg leading-5 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:bg-white dark:focus:bg-slate-600 focus:ring-1 focus:ring-orange-500 focus:border-orange-500 sm:text-sm transition-colors" placeholder="Search appointments or events...">
                  </div>
              </div>
+             ` : `
+             <div class="flex items-center gap-3">
+                 <div class="h-8 w-8 bg-orange-500 rounded-lg flex items-center justify-center shadow-sm text-white shrink-0">
+                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                 </div>
+                 <span class="font-bold text-slate-800 dark:text-white text-base">Routing Public Viewer</span>
+             </div>
+             `}
              <div class="flex items-center gap-4 ml-4">
                  <button id="theme-toggle" class="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors" title="Toggle Theme">
                     <svg class="w-6 h-6 hidden dark:block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
@@ -137,14 +155,18 @@ export const getAppShellMarkup = ({ currentUser, currentView, currentDesign, sid
                  <button id="design-toggle" class="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors" title="Change Design">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"></path></svg>
                  </button>
+                 ${hasUser ? `
                  <button class="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors relative">
                      <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
                      <span class="absolute top-2 right-2 h-2 w-2 bg-red-500 rounded-full border border-white dark:border-slate-800"></span>
                  </button>
+                 ` : `
+                 <button id="guest-login-btn" class="bg-orange-500 hover:bg-orange-600 text-white rounded-lg px-4 py-2 text-xs font-bold transition-all shadow-md">Log In</button>
+                 `}
              </div>
-         </header>
+          </header>
 
-         <div class="flex-1 overflow-y-auto p-6 pt-20 md:p-8 md:pt-1 transition-colors duration-300" id="main-content"></div>
+          <div class="flex-1 overflow-y-auto p-6 pt-20 md:p-8 md:pt-1 transition-colors duration-300" id="main-content"></div>
       </main>
     </div>
     <div id="modal-container" class="fixed inset-0 z-50 flex items-center justify-center transition-opacity" style="display:none; background: ${isTactician ? 'rgba(25, 28, 29, 0.4)' : 'rgba(0, 0, 0, 0.4)'}; backdrop-filter: blur(20px);"></div>
