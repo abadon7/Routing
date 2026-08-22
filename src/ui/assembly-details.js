@@ -17,6 +17,41 @@ const parseLocalDate = (yyyyMmDd) => {
 };
 import { renderSpeakerDetailsModal } from "./speaker-details.js";
 import { getStoredDesign } from "./preferences.js";
+import { parseAssemblyCsv } from "../shared/assembly-csv.js";
+
+const MAIN_TALK_COLUMNS = [
+    { key: "day", label: "Day", sortKey: "day" },
+    { key: "startTime", label: "Time", sortKey: "startTime" },
+    { key: "outline", label: "Outline", sortKey: "outline" },
+    { key: "dateAssigned", label: "Date Assigned", sortKey: "dateAssigned" },
+    { key: "theme", label: "Theme", sortKey: "theme" },
+    { key: "source", label: "Source", sortKey: "source" },
+    { key: "type", label: "Type", sortKey: "type" },
+    { key: "speaker", label: "Speaker", sortKey: "speakerName" },
+    { key: "speakerType", label: "Speaker Type", sortKey: "speakerType" },
+    { key: "extras", label: "Extras", sortKey: "extras" },
+    { key: "speakerName", label: "Speaker Name", sortKey: "speakerName" },
+    { key: "circuit", label: "Circuit", sortKey: "circuit" },
+    { key: "congregation", label: "Congregation", sortKey: "congregation" },
+    { key: "mobilePhone", label: "Mobile Phone", sortKey: "mobilePhone" },
+    { key: "homePhone", label: "Home Phone", sortKey: "homePhone" },
+    { key: "email", label: "Email", sortKey: "email" },
+    { key: "address", label: "Address", sortKey: "address" },
+    { key: "duration", label: "Dur.", sortKey: "duration" },
+    { key: "status", label: "Status", sortKey: "status" },
+    { key: "isVisitor", label: "Visitor", sortKey: "isVisitor" },
+    { key: "isBethelite", label: "Bethelite", sortKey: "isBethelite" },
+];
+
+const BASIC_MAIN_TALK_COLUMNS = [
+    "day",
+    "startTime",
+    "outline",
+    "theme",
+    "speaker",
+    "duration",
+    "status",
+];
 
 export const renderAssemblyDetailsView = async (
     container,
@@ -35,6 +70,10 @@ export const renderAssemblyDetailsView = async (
         (assembly.chairmenByDay || {})[String(currentDay)] || {};
     const morningChairman = currentDayChairmen.morning || {};
     const afternoonChairman = currentDayChairmen.afternoon || {};
+    const startButtonLabel = assembly.liveSession && ["running", "paused"].includes(assembly.liveSession.status) && Number(assembly.liveSession.day || 1) === currentDay ? "Resume" : "Start";
+    const liveSessionStatusMarkup = assembly.liveSession && ["running", "paused"].includes(assembly.liveSession.status) && Number(assembly.liveSession.day || 1) === currentDay
+        ? `<span class="inline-flex items-center gap-1.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em]"><span class="h-2 w-2 rounded-full ${assembly.liveSession.status === "running" ? "bg-blue-500 animate-pulse" : "bg-amber-400"}"></span>${assembly.liveSession.status === "running" ? "Live Session" : "Session Paused"}</span>`
+        : "";
     container.innerHTML = `
     <div class="space-y-8 animate-fade-in-down ${isTactician ? 'tactician-design' : ''}">
         <!-- Loading State -->
@@ -64,6 +103,11 @@ export const renderAssemblyDetailsView = async (
                             <span id="asm-breadcrumb-name" class="font-semibold text-slate-700 dark:text-slate-300">Loading...</span>
                         </div>
                         <div class="flex items-center gap-3">
+                            <button id="share-link-btn" class="flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 rounded-full px-4 py-2 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+                                <span class="material-symbols-outlined text-[17px]">share</span>
+                                <span>Share</span>
+                            </button>
+                            ${options.isReadOnly ? "" : `
                             <button id="clear-talks-btn" class="flex items-center gap-2 text-sm font-semibold text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 rounded-full px-4 py-2 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
                                 <span class="material-symbols-outlined text-[17px]">filter_list_off</span>
                                 <span>Clear</span>
@@ -74,8 +118,9 @@ export const renderAssemblyDetailsView = async (
                             </button>
                             <button id="start-assembly-btn" class="flex items-center gap-2 text-sm font-bold bg-orange-500 hover:bg-orange-600 text-white rounded-full px-5 py-2 shadow-sm transition-colors">
                                 <span class="material-symbols-outlined text-[17px]">play_arrow</span>
-                                <span>${assembly.liveSession && ["running", "paused"].includes(assembly.liveSession.status) && Number(assembly.liveSession.day || 1) === currentDay ? "Resume" : "Start"}</span>
+                                <span>${startButtonLabel}</span>
                             </button>
+                            `}
                         </div>
                     </div>
                     <!-- Tactician: Title block -->
@@ -83,7 +128,7 @@ export const renderAssemblyDetailsView = async (
                         <div class="flex flex-wrap items-center gap-2">
                             <span class="inline-flex items-center rounded-full bg-orange-50 dark:bg-orange-900/30 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-orange-700 dark:text-orange-400">${assembly.eventType === "Regional Convention (3 Days)" ? "Regional Convention" : "Circuit Assembly"}</span>
                             <span class="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] ${assembly.status === "Completed" ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" : assembly.status === "Draft" ? "bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300" : "bg-cyan-100 text-cyan-800 dark:bg-cyan-900/30 dark:text-cyan-300"}">${assembly.status || "Upcoming"}</span>
-                            ${assembly.liveSession && ["running", "paused"].includes(assembly.liveSession.status) && Number(assembly.liveSession.day || 1) === currentDay ? `<span class="inline-flex items-center gap-1.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em]"><span class="h-2 w-2 rounded-full ${assembly.liveSession.status === "running" ? "bg-blue-500 animate-pulse" : "bg-amber-400"}"></span>${assembly.liveSession.status === "running" ? "Live Session" : "Session Paused"}</span>` : ""}
+                            ${liveSessionStatusMarkup}
                         </div>
                         <h2 id="asm-detail-theme" class="editorial-header !text-4xl md:!text-5xl !font-bold">Loading...</h2>
                         <div class="flex flex-wrap items-center gap-5 text-sm text-slate-500 dark:text-slate-400">
@@ -108,7 +153,7 @@ export const renderAssemblyDetailsView = async (
                                     <div class="flex flex-wrap items-center gap-2">
                                         <span class="inline-flex items-center rounded-full border border-slate-200/80 dark:border-slate-700/80 bg-white/80 dark:bg-slate-900/70 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">${assembly.eventType === "Regional Convention (3 Days)" ? "Regional Convention" : "Circuit Assembly"}</span>
                                         <span class="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] ${assembly.status === "Completed" ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" : assembly.status === "Draft" ? "bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300" : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"}">${assembly.status || "Upcoming"}</span>
-                                        ${assembly.liveSession && ["running", "paused"].includes(assembly.liveSession.status) && Number(assembly.liveSession.day || 1) === currentDay ? `<span class="inline-flex items-center gap-1.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em]"><span class="h-2 w-2 rounded-full ${assembly.liveSession.status === "running" ? "bg-blue-500 animate-pulse" : "bg-amber-400"}"></span>${assembly.liveSession.status === "running" ? "Live Session" : "Session Paused"}</span>` : ""}
+                                        ${liveSessionStatusMarkup}
                                     </div>
                                     <div>
                                         <h2 id="asm-detail-theme" class="text-3xl md:text-4xl font-black tracking-tight text-slate-900 dark:text-white leading-tight">Loading...</h2>
@@ -130,12 +175,17 @@ export const renderAssemblyDetailsView = async (
                             </div>
                         </div>
                         <div class="xl:max-w-[320px] w-full xl:w-auto shrink-0 flex items-end">
-                            <div class="rounded-2xl border border-slate-200/80 dark:border-slate-700/80 bg-white/80 dark:bg-slate-900/70 p-3 shadow-sm backdrop-blur-sm">
-                                <p class="px-2 pb-2 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">Quick Actions</p>
-                                <div class="grid grid-cols-1 sm:grid-cols-3 xl:grid-cols-1 gap-2">
+                            <div class="rounded-2xl border border-slate-200/80 dark:border-slate-700/80 bg-white/80 dark:bg-slate-900/70 p-3 shadow-sm backdrop-blur-sm w-full">
+                                <p class="px-2 pb-2 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">${options.isReadOnly ? 'Actions' : 'Quick Actions'}</p>
+                                <div class="grid grid-cols-1 ${options.isReadOnly ? '' : 'sm:grid-cols-3 xl:grid-cols-1'} gap-2">
+                                    <button id="share-link-btn" class="bg-blue-600 hover:bg-blue-700 text-white shadow-sm rounded-xl px-4 py-3 flex items-center justify-center gap-1.5 text-sm font-bold transition-colors">
+                                        <span class="material-symbols-outlined text-[18px]">share</span>
+                                        <span>Share Link</span>
+                                    </button>
+                                    ${options.isReadOnly ? "" : `
                                     <button id="start-assembly-btn" class="bg-blue-600 hover:bg-blue-700 text-white shadow-sm rounded-xl px-4 py-3 flex items-center justify-center gap-1.5 text-sm font-bold transition-colors">
                                         <span class="material-symbols-outlined text-[18px]">play_circle</span>
-                                        <span>${assembly.liveSession && ["running", "paused"].includes(assembly.liveSession.status) && Number(assembly.liveSession.day || 1) === currentDay ? "Resume" : "Start"}</span>
+                                        <span>${startButtonLabel}</span>
                                     </button>
                                     <button id="generate-report-btn" class="text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 bg-white/90 dark:bg-slate-900/80 shadow-sm rounded-xl px-4 py-3 flex items-center justify-center gap-1.5 text-sm font-semibold transition-colors">
                                         <span class="material-symbols-outlined text-[18px]">description</span>
@@ -145,6 +195,7 @@ export const renderAssemblyDetailsView = async (
                                         <span class="material-symbols-outlined text-[18px]">delete_sweep</span>
                                         <span>Clear</span>
                                     </button>
+                                    `}
                                 </div>
                             </div>
                         </div>
@@ -243,10 +294,12 @@ export const renderAssemblyDetailsView = async (
                         <h3 class="text-base md:text-lg font-bold text-slate-900 dark:text-white">Program Chairmen</h3>
                         <p id="chairmen-subtitle" class="text-xs md:text-sm text-slate-500 dark:text-slate-400">Assign the morning and afternoon chairmen for ${assembly.eventType === "Regional Convention (3 Days)" ? `Day ${currentDay}` : "this assembly"}.</p>
                     </div>
+                    ${options.isReadOnly ? "" : `
                     <button id="edit-chairmen-btn" class="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors bg-white/90 dark:bg-slate-900/80">
                         <span class="material-symbols-outlined text-[18px]">edit_square</span>
                         Edit Chairmen
                     </button>
+                    `}
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 md:p-6 bg-gradient-to-br from-white to-slate-50/80 dark:from-slate-900 dark:to-slate-900/60">
                     <div class="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white/90 dark:bg-slate-950/40 p-5 shadow-sm">
@@ -291,15 +344,20 @@ export const renderAssemblyDetailsView = async (
                             <p class="text-[10px] md:text-sm text-slate-500 dark:text-slate-400 ${isTactician ? 'ml-2' : ''}">Manage talks and speakers</p>
                         </div>
                         <div class="flex gap-2">
+                            <button id="talk-columns-btn" type="button" class="${isTactician ? 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:text-orange-600 hover:bg-orange-50/50 shadow-sm px-4 py-2 rounded-xl text-sm font-bold' : 'px-3 py-1.5 md:px-4 md:py-2 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 rounded-lg text-xs md:text-sm font-bold border border-slate-200 dark:border-slate-600 shadow-sm'} flex items-center gap-1.5 transition-all">
+                                <span class="material-symbols-outlined text-sm">view_column</span><span class="hidden sm:inline">Columns</span>
+                            </button>
                             <button id="print-schedule-btn" class="${isTactician ? 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:text-orange-600 hover:bg-orange-50/50 shadow-sm px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-1.5 transition-all' : 'px-3 py-1.5 md:px-4 md:py-2 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 rounded-lg text-xs md:text-sm font-bold flex items-center gap-1.5 transition-all border border-slate-200 dark:border-slate-600 shadow-sm'}">
                                 <span class="material-symbols-outlined text-sm">print</span> <span class="hidden sm:inline">Print</span><span class="sm:hidden">Print</span>
                             </button>
+                            ${options.isReadOnly ? "" : `
                             <button id="bulk-import-talks-btn" class="${isTactician ? 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:text-orange-600 hover:bg-orange-50/50 shadow-sm px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-1.5 transition-all' : 'px-3 py-1.5 md:px-4 md:py-2 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 rounded-lg text-xs md:text-sm font-bold flex items-center gap-1.5 transition-all border border-slate-200 dark:border-slate-600 shadow-sm'}">
                                 <span class="material-symbols-outlined text-sm">upload_file</span> <span class="hidden sm:inline">Bulk Import</span><span class="sm:hidden">Import</span>
                             </button>
                             <button id="add-talk-btn" class="${isTactician ? 'tactile-button-primary px-4 py-2 flex items-center gap-1.5 shadow-md' : 'px-3 py-1.5 md:px-4 md:py-2 bg-slate-900 dark:bg-blue-600 text-white rounded-lg text-xs md:text-sm font-bold flex items-center gap-1.5 hover:opacity-90 transition-all shadow-md'}">
                                 <span class="material-symbols-outlined text-sm">add</span> <span class="hidden sm:inline ${isTactician ? 'display-font tracking-widest uppercase text-[11px] font-black' : ''}">Add Talk</span><span class="sm:hidden ${isTactician ? 'display-font tracking-widest uppercase text-[11px] font-black' : ''}">Add</span>
                             </button>
+                            `}
                         </div>
                     </div>
                     <!-- Search Bar -->
@@ -316,6 +374,22 @@ export const renderAssemblyDetailsView = async (
                         <button id="schedule-search-clear" class="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors hidden">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                         </button>
+                    </div>
+                    <div id="talk-columns-menu" class="hidden relative z-20 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-3 shadow-sm">
+                        <div class="flex items-center justify-between gap-3 mb-2">
+                            <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Columns to show</span>
+                            <div class="flex items-center gap-3">
+                                <button id="talk-columns-save" type="button" class="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline">Save</button>
+                                <button id="talk-columns-close" type="button" class="text-xs font-semibold text-slate-400 hover:text-slate-700 dark:hover:text-slate-200">Done</button>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 md:grid-cols-5 gap-2">
+                            ${MAIN_TALK_COLUMNS.map(({ key, label }) => `
+                            <label class="flex items-center gap-2 cursor-pointer select-none text-xs font-semibold text-slate-600 dark:text-slate-300">
+                                <input type="checkbox" name="main-talk-column" value="${key}" checked class="rounded border-slate-300 text-blue-600 focus:ring-blue-500">
+                                <span>${label}</span>
+                            </label>`).join("")}
+                        </div>
                     </div>
                 </div>
                 <!-- Day Tabs (Only for 3-Day Conventions) -->
@@ -339,14 +413,8 @@ export const renderAssemblyDetailsView = async (
                     <table class="w-full text-left">
                         <thead>
                             <tr class="${isTactician ? 'text-slate-400 dark:text-slate-500 text-[10px] uppercase font-black tracking-[0.2em] display-font select-none' : 'bg-slate-50/80 dark:bg-slate-800/80 text-slate-500 dark:text-slate-400 text-[10px] font-bold uppercase tracking-wider'}">
-                                 <th class="px-3 py-3"><button type="button" class="schedule-sort-btn inline-flex items-center gap-1 hover:text-slate-800 dark:hover:text-slate-200 transition-colors" data-sort-key="day">Day <span class="schedule-sort-indicator text-[11px]" data-sort-indicator="day"></span></button></th>
-                                 <th class="px-3 py-3"><button type="button" class="schedule-sort-btn inline-flex items-center gap-1 hover:text-slate-800 dark:hover:text-slate-200 transition-colors" data-sort-key="startTime">Time <span class="schedule-sort-indicator text-[11px]" data-sort-indicator="startTime"></span></button></th>
-                                 <th class="px-3 py-3"><button type="button" class="schedule-sort-btn inline-flex items-center gap-1 text-slate-800 dark:text-slate-100 hover:text-slate-900 dark:hover:text-white transition-colors" data-sort-key="outline">Outline <span class="schedule-sort-indicator text-[11px]" data-sort-indicator="outline">▲</span></button></th>
-                                 <th class="px-3 py-3"><button type="button" class="schedule-sort-btn inline-flex items-center gap-1 hover:text-slate-800 dark:hover:text-slate-200 transition-colors" data-sort-key="theme">Theme <span class="schedule-sort-indicator text-[11px]" data-sort-indicator="theme"></span></button></th>
-                                 <th class="px-3 py-3"><button type="button" class="schedule-sort-btn inline-flex items-center gap-1 hover:text-slate-800 dark:hover:text-slate-200 transition-colors" data-sort-key="speakerName">Speaker <span class="schedule-sort-indicator text-[11px]" data-sort-indicator="speakerName"></span></button></th>
-                                 <th class="px-3 py-3"><button type="button" class="schedule-sort-btn inline-flex items-center gap-1 hover:text-slate-800 dark:hover:text-slate-200 transition-colors" data-sort-key="duration">Dur. <span class="schedule-sort-indicator text-[11px]" data-sort-indicator="duration"></span></button></th>
-                                 <th class="px-3 py-3"><button type="button" class="schedule-sort-btn inline-flex items-center gap-1 hover:text-slate-800 dark:hover:text-slate-200 transition-colors" data-sort-key="status">Status <span class="schedule-sort-indicator text-[11px]" data-sort-indicator="status"></span></button></th>
-                                 <th class="px-3 py-3 text-right"></th>
+                                 ${MAIN_TALK_COLUMNS.map(({ key, label, sortKey }) => `<th data-schedule-column="${key}" class="px-3 py-3"><button type="button" class="schedule-sort-btn inline-flex items-center gap-1 hover:text-slate-800 dark:hover:text-slate-200 transition-colors" data-sort-key="${sortKey}">${label} <span class="schedule-sort-indicator text-[11px]" data-sort-indicator="${sortKey}"></span></button></th>`).join("")}
+                                 ${options.isReadOnly ? "" : '<th class="px-3 py-3 text-right"></th>'}
                              </tr>
                         </thead>
                         <tbody id="talks-list" class="${isTactician ? 'space-y-2' : 'divide-y divide-slate-100 dark:divide-slate-800'}">
@@ -364,7 +432,9 @@ export const renderAssemblyDetailsView = async (
         if (!assembly) throw new Error("Assembly not found");
 
         const talks = await getTalks(activeAssemblyId);
-        const speakers = await getSpeakers();
+        // Speakers are in a private collection — skip fetch for unauthenticated guests.
+        // Speaker name display still works from talk data; only the linked profile popup is gated.
+        const speakers = options.isReadOnly ? [] : await getSpeakers();
 
         // Populate Header
         const theme = assembly.theme || "Untitled Assembly";
@@ -426,11 +496,34 @@ export const renderAssemblyDetailsView = async (
         }
 
         let activeDay = currentDay;
-        let scheduleSort = { key: "outline", direction: "asc" };
+        let scheduleSort = { key: "startTime", direction: "asc" };
         let statsScope = "day";
         let scheduleSearchQuery = "";
+        const validScheduleColumnKeys = new Set(MAIN_TALK_COLUMNS.map(({ key }) => key));
+        const savedColumnsKey = `routing:assembly:${activeAssemblyId}:talk-columns`;
+        let savedScheduleColumns = null;
+        try {
+            const stored = JSON.parse(localStorage.getItem(savedColumnsKey) || "null");
+            if (Array.isArray(stored)) {
+                const validStored = stored.filter((key) => validScheduleColumnKeys.has(key));
+                if (validStored.length > 0) savedScheduleColumns = validStored;
+            }
+        } catch (error) {
+            console.warn("Unable to load saved talk columns:", error);
+        }
+        const visibleScheduleColumns = new Set(
+            savedScheduleColumns || BASIC_MAIN_TALK_COLUMNS,
+        );
         const list = document.getElementById("talks-list");
-        const colSpan = 8;
+        const colSpan = MAIN_TALK_COLUMNS.length + (options.isReadOnly ? 0 : 1);
+        const syncScheduleColumnVisibility = () => {
+            container.querySelectorAll("[data-schedule-column]").forEach((element) => {
+                element.classList.toggle(
+                    "hidden",
+                    !visibleScheduleColumns.has(element.dataset.scheduleColumn),
+                );
+            });
+        };
         const compareScheduleValues = (a, b, key) => {
             const getValue = (talk) => {
                 if (key === "theme") return talk.theme || talk.title || "";
@@ -487,6 +580,8 @@ export const renderAssemblyDetailsView = async (
                         t.startTime || "",
                         t.status || "",
                         t.type || "",
+                        t.speakerType || "",
+                        t.extras || "",
                         t.congregation || "",
                     ];
                     return fields.some((f) => f.toLowerCase().includes(q));
@@ -528,7 +623,7 @@ export const renderAssemblyDetailsView = async (
                 const isMorningLinked = !!morning.speakerId || (morning.email && (speakers || []).some(s => s.email && s.email.toLowerCase() === morning.email.toLowerCase()));
                 const spkId = morning.speakerId || (morning.email && (speakers || []).find(s => s.email && s.email.toLowerCase() === morning.email.toLowerCase())?.id);
                 morningName.innerHTML = `
-                    <span class="${isMorningLinked ? 'cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 hover:underline transition-colors active-speaker-link' : ''}" data-id="${spkId || ''}" data-email="${morning.email || ''}">
+                    <span class="${isMorningLinked && !options.isReadOnly ? 'cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 hover:underline transition-colors active-speaker-link' : ''}" data-id="${spkId || ''}" data-email="${morning.email || ''}">
                         ${morning.speakerName || morning.manualName || "Not assigned yet"}
                     </span>
                     ${isMorningLinked ? '<span class="material-symbols-outlined text-[14px] text-blue-400 align-middle ml-1" title="Linked to database">link</span>' : ""}
@@ -541,7 +636,7 @@ export const renderAssemblyDetailsView = async (
                 const isAfternoonLinked = !!afternoon.speakerId || (afternoon.email && (speakers || []).some(s => s.email && s.email.toLowerCase() === afternoon.email.toLowerCase()));
                 const spkId = afternoon.speakerId || (afternoon.email && (speakers || []).find(s => s.email && s.email.toLowerCase() === afternoon.email.toLowerCase())?.id);
                 afternoonName.innerHTML = `
-                    <span class="${isAfternoonLinked ? 'cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 hover:underline transition-colors active-speaker-link' : ''}" data-id="${spkId || ''}" data-email="${afternoon.email || ''}">
+                    <span class="${isAfternoonLinked && !options.isReadOnly ? 'cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 hover:underline transition-colors active-speaker-link' : ''}" data-id="${spkId || ''}" data-email="${afternoon.email || ''}">
                         ${afternoon.speakerName || afternoon.manualName || "Not assigned yet"}
                     </span>
                     ${isAfternoonLinked ? '<span class="material-symbols-outlined text-[14px] text-blue-400 align-middle ml-1" title="Linked to database">link</span>' : ""}
@@ -636,14 +731,17 @@ export const renderAssemblyDetailsView = async (
 
                         return `
                 <tr class="talk-row group ${isTactician ? 'hover:bg-[var(--tactician-surface-lowest)] transition-all cursor-pointer' : 'hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors cursor-pointer border-b border-slate-100 dark:border-slate-800/60'}" data-id="${t.id}">
-                    <td class="px-3 py-3 text-xs text-slate-500 font-medium whitespace-nowrap ${isTactician ? 'rounded-l-xl' : ''}">${assembly.eventType === "Regional Convention (3 Days)" ? `Day ${t.day || 1}` : "—"}</td>
-                    <td class="px-3 py-3 text-xs font-semibold text-slate-800 dark:text-white whitespace-nowrap">${t.startTime || "—"}</td>
-                    <td class="px-3 py-3 text-xs ${isTactician ? 'font-black tracking-wider text-slate-600 dark:text-slate-300' : 'font-bold text-slate-700 dark:text-slate-300'} whitespace-nowrap">${t.outline || "—"}</td>
-                    <td class="px-3 py-3 min-w-[160px]">
+                    <td data-schedule-column="day" class="px-3 py-3 text-xs text-slate-500 font-medium whitespace-nowrap ${isTactician ? 'rounded-l-xl' : ''}">${assembly.eventType === "Regional Convention (3 Days)" ? `Day ${t.day || 1}` : "—"}</td>
+                    <td data-schedule-column="startTime" class="px-3 py-3 text-xs font-semibold text-slate-800 dark:text-white whitespace-nowrap">${t.startTime || "—"}</td>
+                    <td data-schedule-column="outline" class="px-3 py-3 text-xs ${isTactician ? 'font-black tracking-wider text-slate-600 dark:text-slate-300' : 'font-bold text-slate-700 dark:text-slate-300'} whitespace-nowrap">${t.outline || "—"}</td>
+                    <td data-schedule-column="dateAssigned" class="px-3 py-3 text-xs text-slate-600 dark:text-slate-300 whitespace-nowrap">${t.dateAssigned || "—"}</td>
+                    <td data-schedule-column="theme" class="px-3 py-3 min-w-[160px]">
                         <p class="text-xs font-semibold text-slate-900 dark:text-white leading-tight line-clamp-2">${t.theme || t.title || "—"}</p>
                         <span class="text-[10px] text-slate-400 font-mono">${t.type || ""}</span>
                     </td>
-                    <td class="px-3 py-3">
+                    <td data-schedule-column="source" class="px-3 py-3 text-xs text-slate-600 dark:text-slate-300">${t.source || "—"}</td>
+                    <td data-schedule-column="type" class="px-3 py-3 text-xs text-slate-600 dark:text-slate-300">${t.type || "—"}</td>
+                    <td data-schedule-column="speaker" class="px-3 py-3">
                         ${(t.source && t.source.trim().toLowerCase() !== 'inperson')
                                 ? `<div class="flex items-center gap-1.5">
                                 <div class="w-5 h-5 rounded-full flex items-center justify-center shrink-0 bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400">
@@ -655,28 +753,42 @@ export const renderAssemblyDetailsView = async (
                                     ? `
                         <div class="flex items-center gap-1.5">
                             <div class="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold shrink-0 ${isLinked ? "bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400" : "bg-slate-100 dark:bg-slate-700 text-slate-500"}">${speakerInitials}</div>
-                            <span class="text-xs font-semibold text-slate-900 dark:text-white truncate max-w-[90px] ${isLinked ? 'cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 hover:underline transition-colors active-speaker-link' : ''}" data-id="${t.speakerId || (t.email ? (speakers || []).find(s => s.email && s.email.toLowerCase() === t.email.toLowerCase())?.id : '')}" data-email="${t.email || ''}">${t.speakerName}</span>
+                            <span class="text-xs font-semibold text-slate-900 dark:text-white truncate max-w-[90px] ${isLinked && !options.isReadOnly ? 'cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 hover:underline transition-colors active-speaker-link' : ''}" data-id="${t.speakerId || (t.email ? (speakers || []).find(s => s.email && s.email.toLowerCase() === t.email.toLowerCase())?.id : '')}" data-email="${t.email || ''}">${t.speakerName}</span>
                             ${isLinked ? '<span class="material-symbols-outlined text-[11px] text-blue-400" title="Linked to database">link</span>' : ""}
                         </div>`
                                     : `<span class="text-xs text-slate-400 italic">Unassigned</span>`)
                             }</td>
-                    <td class="px-3 py-3 text-xs text-slate-500 dark:text-slate-400 whitespace-nowrap">${t.duration ? t.duration + " min" : "—"}</td>
-                    <td class="px-3 py-3">
-                        <button type="button" class="status-badge inline-flex items-center gap-1 ${isTactician ? 'px-2.5 py-1 text-[9px] uppercase tracking-[0.12em] display-font' : 'px-2 py-0.5 text-[10px]'} rounded-full font-bold ${statusClass} hover:opacity-90 transition-opacity" data-id="${t.id}" data-status="${t.status || "Pending"}" title="Change status">
+                    <td data-schedule-column="speakerType" class="px-3 py-3 text-xs text-slate-600 dark:text-slate-300 max-w-[140px] truncate" title="${t.speakerType || ""}">${t.speakerType || "—"}</td>
+                    <td data-schedule-column="extras" class="px-3 py-3 text-xs text-slate-600 dark:text-slate-300 max-w-[180px] truncate" title="${t.extras || ""}">${t.extras || "—"}</td>
+                    <td data-schedule-column="speakerName" class="px-3 py-3 text-xs text-slate-700 dark:text-slate-200">${t.speakerName || "—"}</td>
+                    <td data-schedule-column="circuit" class="px-3 py-3 text-xs text-slate-600 dark:text-slate-300">${t.circuit || "—"}</td>
+                    <td data-schedule-column="congregation" class="px-3 py-3 text-xs text-slate-600 dark:text-slate-300">${t.congregation || "—"}</td>
+                    <td data-schedule-column="mobilePhone" class="px-3 py-3 text-xs text-slate-600 dark:text-slate-300 whitespace-nowrap">${t.mobilePhone || "—"}</td>
+                    <td data-schedule-column="homePhone" class="px-3 py-3 text-xs text-slate-600 dark:text-slate-300 whitespace-nowrap">${t.homePhone || "—"}</td>
+                    <td data-schedule-column="email" class="px-3 py-3 text-xs text-slate-600 dark:text-slate-300">${t.email || "—"}</td>
+                    <td data-schedule-column="address" class="px-3 py-3 text-xs text-slate-600 dark:text-slate-300">${t.address || "—"}</td>
+                    <td data-schedule-column="duration" class="px-3 py-3 text-xs text-slate-500 dark:text-slate-400 whitespace-nowrap">${t.duration ? t.duration + " min" : "—"}</td>
+                    <td data-schedule-column="status" class="px-3 py-3">
+                        <button type="button" class="status-badge inline-flex items-center gap-1 ${isTactician ? 'px-2.5 py-1 text-[9px] uppercase tracking-[0.12em] display-font' : 'px-2 py-0.5 text-[10px]'} rounded-full font-bold ${statusClass} ${options.isReadOnly ? 'cursor-default' : 'hover:opacity-90 transition-opacity'}" data-id="${t.id}" data-status="${t.status || "Pending"}" ${options.isReadOnly ? 'disabled' : 'title="Change status"'}>
                             <span class="w-1.5 h-1.5 rounded-full ${statusDot}"></span>
                             ${t.status || "Pending"}
                         </button>
                     </td>
+                    <td data-schedule-column="isVisitor" class="px-3 py-3 text-xs text-slate-600 dark:text-slate-300">${t.isVisitor ? "Yes" : "No"}</td>
+                    <td data-schedule-column="isBethelite" class="px-3 py-3 text-xs text-slate-600 dark:text-slate-300">${t.isBethelite ? "Yes" : "No"}</td>
+                    ${options.isReadOnly ? "" : `
                     <td class="px-3 py-3 text-right whitespace-nowrap ${isTactician ? 'rounded-r-xl' : ''}">
                         <button class="edit-talk-btn p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors rounded" data-id="${t.id}" title="Edit">
                             <span class="material-symbols-outlined text-[18px]">edit</span>
                         </button>
                     </td>
+                    `}
                 </tr>
                 `;
                     })
                     .join("");
             }
+            syncScheduleColumnVisibility();
         };
 
         renderProgramChairmen(activeDay);
@@ -691,7 +803,7 @@ export const renderAssemblyDetailsView = async (
         // Wire events
         document
             .getElementById("back-to-assemblies")
-            .addEventListener("click", () => options.setView("assemblies"));
+            ?.addEventListener("click", () => options.setView("assemblies"));
         document
             .getElementById("generate-report-btn")
             ?.addEventListener("click", () =>
@@ -702,6 +814,56 @@ export const renderAssemblyDetailsView = async (
             ?.addEventListener("click", () =>
                 renderPrintScheduleModal(assembly, talks, activeDay, speakers),
             );
+        const columnsMenu = container.querySelector("#talk-columns-menu");
+        const columnsButton = container.querySelector("#talk-columns-btn");
+        const columnsClose = container.querySelector("#talk-columns-close");
+        const columnsSave = container.querySelector("#talk-columns-save");
+        const columnCheckboxes = [...container.querySelectorAll('input[name="main-talk-column"]')];
+        const syncColumnMenu = () => {
+            columnCheckboxes.forEach((checkbox) => {
+                checkbox.checked = visibleScheduleColumns.has(checkbox.value);
+                checkbox.disabled = checkbox.checked && visibleScheduleColumns.size === 1;
+            });
+            syncScheduleColumnVisibility();
+        };
+        columnsButton?.addEventListener("click", (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            columnsMenu?.classList.toggle("hidden");
+        });
+        columnsClose?.addEventListener("click", (event) => {
+            event.preventDefault();
+            columnsMenu?.classList.add("hidden");
+        });
+        columnsSave?.addEventListener("click", (event) => {
+            event.preventDefault();
+            try {
+                localStorage.setItem(
+                    savedColumnsKey,
+                    JSON.stringify([...visibleScheduleColumns]),
+                );
+                columnsSave.textContent = "Saved";
+                setTimeout(() => {
+                    if (columnsSave.isConnected) columnsSave.textContent = "Save";
+                }, 1200);
+            } catch (error) {
+                console.warn("Unable to save talk columns:", error);
+                alert("Unable to save column preferences in this browser.");
+            }
+        });
+        columnCheckboxes.forEach((checkbox) => {
+            checkbox.addEventListener("change", () => {
+                if (checkbox.checked) {
+                    visibleScheduleColumns.add(checkbox.value);
+                } else if (visibleScheduleColumns.size > 1) {
+                    visibleScheduleColumns.delete(checkbox.value);
+                } else {
+                    checkbox.checked = true;
+                }
+                syncColumnMenu();
+            });
+        });
+        syncColumnMenu();
         document
             .getElementById("start-assembly-btn")
             ?.addEventListener("click", () =>
@@ -749,6 +911,23 @@ export const renderAssemblyDetailsView = async (
                 }
             });
 
+        // Share button wiring
+        const shareBtn = document.getElementById("share-link-btn");
+        if (shareBtn) {
+            shareBtn.addEventListener("click", async () => {
+                try {
+                    await navigator.clipboard.writeText(window.location.href);
+                    const originalHtml = shareBtn.innerHTML;
+                    shareBtn.innerHTML = '<span class="material-symbols-outlined text-[17px]">done</span> <span>Copied!</span>';
+                    setTimeout(() => {
+                        shareBtn.innerHTML = originalHtml;
+                    }, 2000);
+                } catch (err) {
+                    alert("Failed to copy link: " + err.message);
+                }
+            });
+        }
+
         // Day tabs event listeners
         if (assembly.eventType === "Regional Convention (3 Days)") {
             document.querySelectorAll(".day-tab-btn").forEach((btn) => {
@@ -790,7 +969,7 @@ export const renderAssemblyDetailsView = async (
         // Add/Edit talk modals
         document
             .getElementById("add-talk-btn")
-            .addEventListener("click", () =>
+            ?.addEventListener("click", () =>
                 renderAddTalkModal(
                     container,
                     activeAssemblyId,
@@ -866,6 +1045,7 @@ export const renderAssemblyDetailsView = async (
             const statusBtn = e.target.closest(".status-badge");
             if (statusBtn) {
                 e.stopPropagation();
+                if (options.isReadOnly) return;
                 const talk = talks.find((t) => t.id === statusBtn.dataset.id);
                 if (!talk) return;
 
@@ -926,10 +1106,13 @@ export const renderAssemblyDetailsView = async (
             if (row) {
                 const talk = talks.find((t) => t.id === row.dataset.id);
                 if (talk) {
-                    const speakers = await getSpeakers();
-                    const linkedSpeaker = talk.speakerId
-                        ? speakers.find((s) => s.id === talk.speakerId)
-                        : (talk.email ? speakers.find(s => s.email && s.email.toLowerCase() === talk.email.toLowerCase()) : null);
+                    let linkedSpeaker = null;
+                    if (!options.isReadOnly) {
+                        const spkList = await getSpeakers();
+                        linkedSpeaker = talk.speakerId
+                            ? spkList.find((s) => s.id === talk.speakerId)
+                            : (talk.email ? spkList.find(s => s.email && s.email.toLowerCase() === talk.email.toLowerCase()) : null);
+                    }
                     renderTalkDetailDialog(talk, linkedSpeaker, assembly);
                 }
             }
@@ -952,10 +1135,15 @@ export const renderAssemblyDetailsView = async (
     }
 };
 
+const closeExistingTalkModals = () => {
+    document.querySelectorAll(".assembly-talk-modal").forEach((modal) => modal.remove());
+};
+
 const renderTalkDetailDialog = (talk, linkedSpeaker, assembly) => {
+    closeExistingTalkModals();
     const modal = document.createElement("div");
     modal.className =
-        "fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-slate-900/60 backdrop-blur-[2px] animate-fade-in p-4";
+        "assembly-talk-modal fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-slate-900/60 backdrop-blur-[2px] animate-fade-in p-4";
 
     const spk = linkedSpeaker || {};
     const name = talk.speakerName || "—";
@@ -1046,11 +1234,11 @@ const renderTalkDetailDialog = (talk, linkedSpeaker, assembly) => {
 
     document.body.appendChild(modal);
     const close = () => modal.remove();
-    document
-        .getElementById("close-talk-detail")
+    modal
+        .querySelector("#close-talk-detail")
         .addEventListener("click", close);
-    document
-        .getElementById("close-talk-detail-btn")
+    modal
+        .querySelector("#close-talk-detail-btn")
         .addEventListener("click", close);
     modal.addEventListener("click", (e) => {
         if (e.target === modal) close();
@@ -1108,8 +1296,57 @@ const getTalkElapsedSeconds = (talk, now = Date.now()) => {
     );
 };
 
+const PRINTABLE_TALK_COLUMNS = [
+    { key: "day", label: "Day", className: "day-col" },
+    { key: "time", label: "Time", className: "time-col" },
+    { key: "outline", label: "Outline", className: "outline-col" },
+    { key: "dateAssigned", label: "Date Assigned", className: "date-assigned-col" },
+    { key: "theme", label: "Theme", className: "theme-col" },
+    { key: "source", label: "Source", className: "source-col" },
+    { key: "type", label: "Type", className: "type-col" },
+    { key: "speaker", label: "Speaker", className: "speaker-col" },
+    { key: "speakerType", label: "Speaker Type", className: "speaker-type-col" },
+    { key: "extras", label: "Extras", className: "extras-col" },
+    { key: "speakerName", label: "Speaker", className: "speaker-name-col" },
+    { key: "circuit", label: "Circuit", className: "circuit-col" },
+    { key: "congregation", label: "Congregation", className: "congregation-col" },
+    { key: "mobilePhone", label: "Mobile Phone", className: "mobile-phone-col" },
+    { key: "homePhone", label: "Home Phone", className: "home-phone-col" },
+    { key: "email", label: "Email", className: "email-col" },
+    { key: "address", label: "Address", className: "address-col" },
+    { key: "duration", label: "Duration", className: "duration-col" },
+    { key: "status", label: "Status", className: "status-col" },
+    { key: "isVisitor", label: "Visitor", className: "visitor-col" },
+    { key: "isBethelite", label: "Bethelite", className: "bethelite-col" },
+];
+
+const DEFAULT_PRINTABLE_TALK_COLUMNS = PRINTABLE_TALK_COLUMNS.map(({ key }) => key);
+const BASIC_PRINTABLE_TALK_COLUMNS = [
+    "time",
+    "outline",
+    "theme",
+    "speaker",
+    "duration",
+    "status",
+];
+
 const triggerPrint = (assembly, talks, activeDay, options, speakers) => {
-    const { scope, includeChairmen, includeStatus } = options;
+    // Reserve the print window immediately while the click user-gesture is active.
+    let printWindow = null;
+    try {
+        printWindow = window.open("", "_blank");
+    } catch (error) {
+        console.error("Unable to open print window:", error);
+    }
+
+    const {
+        scope,
+        includeChairmen,
+        columns = DEFAULT_PRINTABLE_TALK_COLUMNS,
+    } = options;
+    const selectedColumns = PRINTABLE_TALK_COLUMNS.filter(({ key }) =>
+        columns.includes(key),
+    );
     const isThreeDay = assembly.eventType === "Regional Convention (3 Days)";
 
     let daysToPrint = [1];
@@ -1265,6 +1502,21 @@ const triggerPrint = (assembly, talks, activeDay, options, speakers) => {
             color: #334155;
             width: 140px;
         }
+        .speaker-type-col {
+            color: #475569;
+            width: 100px;
+        }
+        .extras-col {
+            color: #475569;
+
+        }
+            .mobile-phone-col {
+            color: #475569;
+            width: 120px;
+        }
+            .speaker-name-col{
+            width: 120px;
+            }
         .duration-col {
             color: #64748b;
             text-align: right;
@@ -1399,39 +1651,58 @@ const triggerPrint = (assembly, talks, activeDay, options, speakers) => {
         if (sortedTalks.length === 0) {
             htmlMarkup += `<p style="font-style: italic; color: #64748b; padding: 1rem 0;">No talks scheduled for this day.</p>`;
         } else {
+            const renderColumnHeader = ({ label, className }) =>
+                `<th class="${className}">${label}</th>`;
+
+            const renderColumnCell = (column, talk) => {
+                const statusVal = talk.status || "Pending";
+                const statusClass = statusVal === "Confirmed"
+                    ? "status-confirmed"
+                    : (statusVal === "Cancelled" ? "status-cancelled" : "status-pending");
+
+                const contentByColumn = {
+                    day: talk.day || "—",
+                    time: talk.startTime || "—",
+                    outline: talk.outline || "—",
+                    dateAssigned: talk.dateAssigned || "—",
+                    theme: `<div>${talk.theme || talk.title || "—"}</div>${talk.type ? `<div style="font-size: 7.5pt; font-weight: normal; color: #64748b; margin-top: 2px;">${talk.type}</div>` : ""}`,
+                    source: talk.source || "—",
+                    type: talk.type || "—",
+                    speaker: (typeof talk.source === "string" && talk.source.trim().toLowerCase() !== "inperson")
+                        ? talk.source
+                        : talk.speakerName,
+                    speakerType: talk.speakerType || "—",
+                    extras: talk.extras || "—",
+                    speakerName: talk.speakerName || "—",
+                    circuit: talk.circuit || "—",
+                    congregation: talk.congregation || "—",
+                    mobilePhone: talk.mobilePhone || "—",
+                    homePhone: talk.homePhone || "—",
+                    email: talk.email || "—",
+                    address: talk.address || "—",
+                    duration: talk.duration ? `${talk.duration}m` : "—",
+                    status: `<span class="status-badge ${statusClass}">${statusVal}</span>`,
+                    isVisitor: talk.isVisitor ? "Yes" : "No",
+                    isBethelite: talk.isBethelite ? "Yes" : "No",
+                };
+
+                return `<td class="${column.className}">${contentByColumn[column.key] || "—"}</td>`;
+            };
+
             htmlMarkup += `
                 <table>
                     <thead>
                         <tr>
-                            <th class="time-col">Time</th>
-                            <th class="outline-col">Outline</th>
-                            <th class="theme-col">Theme & Title</th>
-                            <th class="speaker-col">Speaker</th>
-                            <th class="duration-col" style="text-align: right;">Dur.</th>
-                            ${includeStatus ? `<th class="status-col">Status</th>` : ''}
+                            ${selectedColumns.map(renderColumnHeader).join("")}
                         </tr>
                     </thead>
                     <tbody>
             `;
 
             sortedTalks.forEach((t) => {
-                const statusVal = t.status || "Pending";
-                const statusClass = statusVal === "Confirmed" ? "status-confirmed" : (statusVal === "Cancelled" ? "status-cancelled" : "status-pending");
                 htmlMarkup += `
                     <tr>
-                        <td class="time-col">${t.startTime || "—"}</td>
-                        <td class="outline-col">${t.outline || "—"}</td>
-                        <td class="theme-col">
-                            <div>${t.theme || t.title || "—"}</div>
-                            ${t.type ? `<div style="font-size: 7.5pt; font-weight: normal; color: #64748b; margin-top: 2px;">${t.type}</div>` : ""}
-                        </td>
-                        <td class="speaker-col">${(t.source && t.source.trim().toLowerCase() !== 'inperson')
-                        ? t.source : t.speakerName}</td>
-                        <td class="duration-col" style="text-align: right; font-weight: 500;">${t.duration ? `${t.duration}m` : "—"}</td>
-                        ${includeStatus ? `
-                        <td class="status-col">
-                            <span class="status-badge ${statusClass}">${statusVal}</span>
-                        </td>` : ''}
+                        ${selectedColumns.map((column) => renderColumnCell(column, t)).join("")}
                     </tr>
                 `;
             });
@@ -1489,7 +1760,9 @@ const triggerPrint = (assembly, talks, activeDay, options, speakers) => {
                 } catch (error) {
                     console.error("Frame print failed, falling back to popup print:", error);
                     frame.remove();
-                    printWithPopup();
+                    if (!printWithPopup()) {
+                        alert("Unable to open the print preview. Please allow popups for this site and try again.");
+                    }
                 }
             }, 100);
         }, { once: true });
@@ -1498,28 +1771,40 @@ const triggerPrint = (assembly, talks, activeDay, options, speakers) => {
     };
 
     const printWithPopup = () => {
-        const printWindow = window.open("", "_blank");
         if (!printWindow) {
-            alert("Pop-up blocker is preventing print preview. Please allow popups for this site.");
-            return;
+            return false;
         }
 
-        printWindow.document.write(htmlMarkup);
-        printWindow.document.close();
-        printWindow.onload = () => {
+        let hasPrinted = false;
+        const printPopup = () => {
+            if (hasPrinted) return;
+            hasPrinted = true;
             printWindow.focus();
             printWindow.print();
         };
 
+        printWindow.onload = () => {
+            printPopup();
+        };
+
+        printWindow.document.write(htmlMarkup);
+        printWindow.document.close();
+        printPopup();
+
         setTimeout(() => {
             if (printWindow.document.readyState === "complete") {
-                printWindow.focus();
-                printWindow.print();
+                printPopup();
             }
         }, 500);
+
+        return true;
     };
 
-    printWithFrame();
+    // Open from the click handler's user gesture so browsers do not suppress print.
+    // The iframe remains a fallback for environments that disallow popup windows.
+    if (!printWithPopup()) {
+        alert("Unable to open the print preview. Please allow popups for this site and try again.");
+    }
 };
 
 const renderPrintScheduleModal = (assembly, talks, activeDay, speakers) => {
@@ -1529,6 +1814,21 @@ const renderPrintScheduleModal = (assembly, talks, activeDay, speakers) => {
         "fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-[2px] animate-fade-in p-4";
 
     const isThreeDay = assembly.eventType === "Regional Convention (3 Days)";
+    const printableColumnsKey = `routing:assembly:${assembly.id}:print-columns`;
+    const validPrintableColumnKeys = new Set(PRINTABLE_TALK_COLUMNS.map(({ key }) => key));
+    let savedPrintableColumns = null;
+    try {
+        const stored = JSON.parse(localStorage.getItem(printableColumnsKey) || "null");
+        if (Array.isArray(stored)) {
+            const validStored = stored.filter((key) => validPrintableColumnKeys.has(key));
+            if (validStored.length > 0) savedPrintableColumns = validStored;
+        }
+    } catch (error) {
+        console.warn("Unable to load saved print columns:", error);
+    }
+    const selectedPrintableColumns = new Set(
+        savedPrintableColumns || BASIC_PRINTABLE_TALK_COLUMNS,
+    );
 
     let optionsHtml = "";
     if (isThreeDay) {
@@ -1585,15 +1885,25 @@ const renderPrintScheduleModal = (assembly, talks, activeDay, speakers) => {
             ${optionsHtml}
             
             <div class="space-y-3">
-                <label class="text-xs font-bold uppercase tracking-wider text-slate-400">Layout Settings</label>
+                <div class="flex items-center justify-between gap-3">
+                    <label class="text-xs font-bold uppercase tracking-wider text-slate-400">Columns to print</label>
+                    <button id="print-columns-save" type="button" class="text-xs font-bold text-orange-600 dark:text-orange-400 hover:underline">Save</button>
+                </div>
+                <div class="grid grid-cols-2 gap-2.5">
+                            ${PRINTABLE_TALK_COLUMNS.map(({ key, label }) => `
+                    <label class="flex items-center gap-3 cursor-pointer select-none">
+                        <input type="checkbox" name="print-column" value="${key}" ${selectedPrintableColumns.has(key) ? "checked" : ""} class="rounded border-slate-300 text-orange-500 focus:ring-orange-500 h-4.5 w-4.5">
+                        <span class="text-sm font-semibold text-slate-700 dark:text-slate-300">${label}</span>
+                    </label>`).join("")}
+                </div>
+            </div>
+
+            <div class="space-y-3">
+                <label class="text-xs font-bold uppercase tracking-wider text-slate-400">Additional layout</label>
                 <div class="space-y-2.5">
                     <label class="flex items-center gap-3 cursor-pointer select-none">
                         <input type="checkbox" id="print-include-chairmen" checked class="rounded border-slate-300 text-orange-500 focus:ring-orange-500 h-4.5 w-4.5">
                         <span class="text-sm font-semibold text-slate-700 dark:text-slate-300">Include Program Chairmen</span>
-                    </label>
-                    <label class="flex items-center gap-3 cursor-pointer select-none">
-                        <input type="checkbox" id="print-include-status" checked class="rounded border-slate-300 text-orange-500 focus:ring-orange-500 h-4.5 w-4.5">
-                        <span class="text-sm font-semibold text-slate-700 dark:text-slate-300">Include Talk Status</span>
                     </label>
                 </div>
             </div>
@@ -1646,20 +1956,61 @@ const renderPrintScheduleModal = (assembly, talks, activeDay, speakers) => {
         requestAnimationFrame(syncPrintScopeUI);
     }
 
+    const syncColumnSelectionUI = () => {
+        const selectedColumns = modal.querySelectorAll('input[name="print-column"]:checked');
+        const printButton = modal.querySelector("#confirm-print-btn");
+        const hasSelection = selectedColumns.length > 0;
+        printButton.disabled = !hasSelection;
+        printButton.title = hasSelection ? "" : "Select at least one column";
+        printButton.classList.toggle("opacity-50", !hasSelection);
+        printButton.classList.toggle("cursor-not-allowed", !hasSelection);
+    };
+
+    const savePrintColumnsButton = modal.querySelector("#print-columns-save");
+    savePrintColumnsButton?.addEventListener("click", (event) => {
+        event.preventDefault();
+        const selectedColumns = [...modal.querySelectorAll('input[name="print-column"]:checked')]
+            .map((checkbox) => checkbox.value);
+        if (selectedColumns.length === 0) return;
+
+        try {
+            localStorage.setItem(printableColumnsKey, JSON.stringify(selectedColumns));
+            savePrintColumnsButton.textContent = "Saved";
+            setTimeout(() => {
+                if (savePrintColumnsButton.isConnected) savePrintColumnsButton.textContent = "Save";
+            }, 1200);
+        } catch (error) {
+            console.warn("Unable to save print columns:", error);
+            alert("Unable to save print column preferences in this browser.");
+        }
+    });
+
+    modal.querySelectorAll('input[name="print-column"]').forEach((checkbox) => {
+        checkbox.addEventListener("change", syncColumnSelectionUI);
+    });
+    syncColumnSelectionUI();
+
     const close = () => modal.remove();
-    document.getElementById("close-print-modal").addEventListener("click", close);
-    document.getElementById("cancel-print-btn").addEventListener("click", close);
+    modal.querySelector("#close-print-modal").addEventListener("click", close);
+    modal.querySelector("#cancel-print-btn").addEventListener("click", close);
     modal.addEventListener("click", (e) => {
         if (e.target === modal) close();
     });
 
-    document.getElementById("confirm-print-btn").addEventListener("click", () => {
-        const scope = modal.querySelector('input[name="print-scope"]:checked')?.value || 'all';
-        const includeChairmen = document.getElementById("print-include-chairmen").checked;
-        const includeStatus = document.getElementById("print-include-status").checked;
+    modal.querySelector("#confirm-print-btn").addEventListener("click", (event) => {
+        event.preventDefault();
+        try {
+            const scope = modal.querySelector('input[name="print-scope"]:checked')?.value || 'all';
+            const includeChairmen = modal.querySelector("#print-include-chairmen").checked;
+            const columns = [...modal.querySelectorAll('input[name="print-column"]:checked')]
+                .map((checkbox) => checkbox.value);
 
-        close();
-        triggerPrint(assembly, talks, activeDay, { scope, includeChairmen, includeStatus }, speakers);
+            close();
+            triggerPrint(assembly, talks, activeDay, { scope, includeChairmen, columns }, speakers);
+        } catch (error) {
+            console.error("Assembly print failed:", error);
+            alert(`Unable to print this assembly: ${error.message || error}`);
+        }
     });
 };
 
@@ -2433,10 +2784,10 @@ export const renderAssemblyModal = async (
 
     const closeModal = () => modal.remove();
     document
-        .getElementById("close-modal-btn")
+        .querySelector("#close-modal-btn")
         .addEventListener("click", closeModal);
     document
-        .getElementById("cancel-modal-btn")
+        .querySelector("#cancel-modal-btn")
         .addEventListener("click", closeModal);
 
     document
@@ -2492,9 +2843,10 @@ const renderAddTalkModal = async (
     const talkTheme = isEdit
         ? existingTalk.theme || existingTalk.title || ""
         : "";
+    closeExistingTalkModals();
     const modal = document.createElement("div");
     modal.className =
-        "fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-[2px] animate-fade-in";
+        "assembly-talk-modal fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-[2px] animate-fade-in";
     modal.innerHTML = `
     <div class="bg-white dark:bg-slate-900 w-full max-w-4xl rounded-xl shadow-2xl border border-slate-200 dark:border-slate-800 flex flex-col overflow-hidden animate-scale-in max-h-[90vh]">
         <div class="flex items-center justify-between px-6 py-5 border-b border-slate-100 dark:border-slate-800">
@@ -2506,7 +2858,7 @@ const renderAddTalkModal = async (
         <div class="p-6 space-y-5 overflow-y-auto">
             <div class="rounded-xl border border-blue-100 bg-blue-50/70 px-4 py-3 text-sm text-slate-700 dark:border-blue-900/50 dark:bg-slate-800/80 dark:text-slate-200">
                 <p class="font-semibold text-slate-900 dark:text-white">Assembly Talk Fields</p>
-                <p class="mt-1">This form now matches the assemblies bulk import fields, with the original type, duration, speaker link, and status controls preserved.</p>
+                <p class="mt-1">Manage the talk details, speaker assignment, speaker type, extras, and status.</p>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -2561,6 +2913,17 @@ const renderAddTalkModal = async (
                     <option value="">-- No Speaker Assigned --</option>
                     ${speakers.map((s) => `<option value="${s.id}" ${isEdit && existingTalk.speakerId === s.id ? "selected" : ""}>${s.name}</option>`).join("")}
                 </select>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="space-y-1.5">
+                    <label class="text-sm font-semibold text-slate-700 dark:text-slate-300">Speaker Type</label>
+                    <input id="talk-speaker-type" class="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none" placeholder="e.g. Visitor, Local, Bethelite" type="text" value="${isEdit ? existingTalk.speakerType || "" : ""}"/>
+                </div>
+                <div class="space-y-1.5">
+                    <label class="text-sm font-semibold text-slate-700 dark:text-slate-300">Extras</label>
+                    <input id="talk-extras" class="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2.5 text-slate-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Optional additional notes" type="text" value="${isEdit ? existingTalk.extras || "" : ""}"/>
+                </div>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -2634,16 +2997,16 @@ const renderAddTalkModal = async (
     document.body.appendChild(modal);
 
     const closeModal = () => modal.remove();
-    document
-        .getElementById("close-modal-btn")
+    modal
+        .querySelector("#close-modal-btn")
         .addEventListener("click", closeModal);
-    document
-        .getElementById("cancel-modal-btn")
+    modal
+        .querySelector("#cancel-modal-btn")
         .addEventListener("click", closeModal);
 
     if (isEdit) {
-        document
-            .getElementById("delete-talk-btn")
+        modal
+            .querySelector("#delete-talk-btn")
             .addEventListener("click", async () => {
                 if (!confirm("Are you sure you want to delete this talk?"))
                     return;
@@ -2657,11 +3020,11 @@ const renderAddTalkModal = async (
             });
     }
 
-    document
-        .getElementById("save-talk-btn")
+    modal
+        .querySelector("#save-talk-btn")
         .addEventListener("click", async () => {
-            const btn = document.getElementById("save-talk-btn");
-            const theme = document.getElementById("talk-theme").value.trim();
+            const btn = modal.querySelector("#save-talk-btn");
+            const theme = modal.querySelector("#talk-theme").value.trim();
             if (!theme) return alert("Theme is required");
 
             try {
@@ -2716,6 +3079,10 @@ const renderAddTalkModal = async (
                         ) || 0,
                     speakerId,
                     speakerName,
+                    speakerType: document
+                        .getElementById("talk-speaker-type")
+                        .value.trim(),
+                    extras: document.getElementById("talk-extras").value.trim(),
                     circuit:
                         document.getElementById("talk-circuit").value.trim() ||
                         selectedSpeaker?.circuit ||
@@ -2786,9 +3153,9 @@ const renderBulkImportTalksModal = async (
         </div>
         <div class="p-6 space-y-4 overflow-y-auto">
             <div class="rounded-xl border border-blue-100 bg-blue-50/70 px-4 py-3 text-sm text-slate-700 dark:border-blue-900/50 dark:bg-slate-800/80 dark:text-slate-200">
-                <p class="font-semibold text-slate-900 dark:text-white">Column Order</p>
-                <p class="mt-1">1. Day  2. Time  3. Outline  4. Duration  5. Theme  6. Source  7. Date Assigned  8. Speaker Name  9. Circuit  10. Congregation  11. Mobile Phone  12. Home Phone  13. Email  14. Address  15. Visitor (Y/N)  16. Bethelite (Y/N)  17. Status or Confirmed (Y/N)</p>
-                <p class="mt-2 text-xs text-slate-500 dark:text-slate-400">Columns after Theme are optional. The Day column uses a number like 1/2/3 for RC, or any number you want for CA. If the last column is omitted, talks import as Pending.</p>
+                <p class="font-semibold text-slate-900 dark:text-white">CSV columns</p>
+                <p class="mt-1">Include a header row. Columns may be in any order and any column may be omitted. Recognized fields include Day, Time, Outline, Duration, Theme, Speaker Type, and Extras, plus speaker/contact details.</p>
+                <p class="mt-2 text-xs text-slate-500 dark:text-slate-400">Rows without a header still use the original column order. Blank values and rows with partial data are kept; omitted status defaults to Pending.</p>
             </div>
             <div class="space-y-1.5">
                 <label class="text-sm font-semibold text-slate-700 dark:text-slate-300">Paste data</label>
@@ -2798,7 +3165,7 @@ const renderBulkImportTalksModal = async (
                 <h4 class="text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Preview (<span id="bulk-talks-count">0</span> talks)</h4>
                 <div class="max-h-56 overflow-y-auto rounded-lg border border-slate-200 dark:border-slate-700">
                     <table class="w-full text-left text-sm">
-                        <thead><tr class="bg-slate-50 dark:bg-slate-700/50"><th class="px-3 py-2 text-xs font-bold text-slate-500 uppercase">Day</th><th class="px-3 py-2 text-xs font-bold text-slate-500 uppercase">Time</th><th class="px-3 py-2 text-xs font-bold text-slate-500 uppercase">Outline</th><th class="px-3 py-2 text-xs font-bold text-slate-500 uppercase">Duration</th><th class="px-3 py-2 text-xs font-bold text-slate-500 uppercase">Theme</th><th class="px-3 py-2 text-xs font-bold text-slate-500 uppercase">Speaker</th><th class="px-3 py-2 text-xs font-bold text-slate-500 uppercase">Status</th></tr></thead>
+                        <thead><tr class="bg-slate-50 dark:bg-slate-700/50"><th class="px-3 py-2 text-xs font-bold text-slate-500 uppercase">Day</th><th class="px-3 py-2 text-xs font-bold text-slate-500 uppercase">Time</th><th class="px-3 py-2 text-xs font-bold text-slate-500 uppercase">Outline</th><th class="px-3 py-2 text-xs font-bold text-slate-500 uppercase">Duration</th><th class="px-3 py-2 text-xs font-bold text-slate-500 uppercase">Theme</th><th class="px-3 py-2 text-xs font-bold text-slate-500 uppercase">Speaker</th><th class="px-3 py-2 text-xs font-bold text-slate-500 uppercase">Speaker Type</th><th class="px-3 py-2 text-xs font-bold text-slate-500 uppercase">Extras</th><th class="px-3 py-2 text-xs font-bold text-slate-500 uppercase">Status</th></tr></thead>
                         <tbody id="bulk-talks-preview-body" class="divide-y divide-slate-100 dark:divide-slate-700"></tbody>
                     </table>
                 </div>
@@ -2829,92 +3196,8 @@ const renderBulkImportTalksModal = async (
 
     let parsedTalks = [];
 
-    const isTruthyFlag = (value) => {
-        const normalized = (value || "").trim().toLowerCase();
-        return ["y", "yes", "true", "1"].includes(normalized);
-    };
-
-    const splitLine = (line) => {
-        if (line.includes("\t")) {
-            return line.split("\t").map((part) => part.trim());
-        }
-        return line.split(",").map((part) => part.trim());
-    };
-
-    const parseBulkStatus = (value) => {
-        const normalized = (value || "").trim().toLowerCase();
-        if (!normalized) return "Pending";
-        if (["confirmed", "confirm", "yes", "y", "true", "1"].includes(normalized)) {
-            return "Confirmed";
-        }
-        if (["cancelled", "canceled", "cancel", "no", "n", "false", "0"].includes(normalized)) {
-            return "Cancelled";
-        }
-        if (normalized === "pending") {
-            return "Pending";
-        }
-        return "Pending";
-    };
     const parseBulkText = () => {
-        const raw = document.getElementById("bulk-talks-text").value.trim();
-        if (!raw) return [];
-
-        return raw
-            .split("\n")
-            .map((line) => line.trim())
-            .filter(Boolean)
-            .map((line) => {
-                const parts = splitLine(line);
-                const day = parseInt(parts[0], 10);
-                const startTime = parts[1] || "00:00";
-                const outline = parts[2] || "";
-                const durationValue = parseInt(parts[3], 10);
-                const theme = parts[4] || "";
-                const source = parts[5] || "";
-                const dateAssigned = parts[6] || "";
-                const speakerName = parts[7] || null;
-                const circuit = parts[8] || "";
-                const congregation = parts[9] || "";
-                const mobilePhone = parts[10] || "";
-                const homePhone = parts[11] || "";
-                const email = parts[12] || "";
-                const address = parts[13] || "";
-                const isVisitor = isTruthyFlag(parts[14]);
-                const isBethelite = isTruthyFlag(parts[15]);
-                const status = parseBulkStatus(parts[16]);
-
-                if (!theme) {
-                    return null;
-                }
-
-                const talkData = {
-                    day: Number.isFinite(day) ? day : currentDay,
-                    startTime,
-                    outline,
-                    theme,
-                    title: theme,
-                    source,
-                    dateAssigned,
-                    speakerId: "",
-                    speakerName,
-                    circuit,
-                    congregation,
-                    mobilePhone,
-                    homePhone,
-                    email,
-                    address,
-                    isVisitor,
-                    isBethelite,
-                    status,
-                };
-
-                if (Number.isFinite(durationValue)) {
-                    talkData.duration = durationValue;
-                }
-
-                return talkData;
-            })
-            .filter(Boolean);
+        return parseAssemblyCsv(document.getElementById("bulk-talks-text").value, currentDay);
     };
 
     document
@@ -2932,7 +3215,7 @@ const renderBulkImportTalksModal = async (
                 saveBtn.disabled = true;
                 statusEl.className = "text-sm font-medium text-red-500";
                 statusEl.textContent =
-                    "No valid talks found. Theme is required on each row.";
+                    "No data rows found. Include a header and at least one value per row.";
                 statusEl.classList.remove("hidden");
                 return;
             }
@@ -2948,7 +3231,10 @@ const renderBulkImportTalksModal = async (
                 <td class="px-3 py-1.5 text-slate-600 dark:text-slate-400 font-mono">${talk.outline || "—"}</td>
                 <td class="px-3 py-1.5 text-slate-600 dark:text-slate-400">${talk.duration ?? "—"}</td>
                 <td class="px-3 py-1.5 text-slate-600 dark:text-slate-400 font-bold">${talk.theme}</td>
-                <td class="px-3 py-1.5 text-slate-600 dark:text-slate-400">${talk.speakerName || "—"}</td>\n                <td class="px-3 py-1.5 text-slate-600 dark:text-slate-400">${talk.status || "Pending"}</td>
+                <td class="px-3 py-1.5 text-slate-600 dark:text-slate-400">${talk.speakerName || "—"}</td>
+                <td class="px-3 py-1.5 text-slate-600 dark:text-slate-400">${talk.speakerType || "—"}</td>
+                <td class="px-3 py-1.5 text-slate-600 dark:text-slate-400">${talk.extras || "—"}</td>
+                <td class="px-3 py-1.5 text-slate-600 dark:text-slate-400">${talk.status || "Pending"}</td>
             </tr>
         `,
                 )
@@ -2999,4 +3285,3 @@ const renderBulkImportTalksModal = async (
             }, 1200);
         });
 };
-

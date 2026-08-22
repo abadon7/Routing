@@ -45,16 +45,37 @@ const downloadCSV = (filename, content) => {
 export const initApp = () => {
     initDesign(); // Initialize design on app start
     onRouteChange(() => {
-        if (currentUser) renderApp();
-    });
-    onAuthChange((user) => {
-        currentUser = user;
-        if (user) {
+        const route = parseRoute();
+        if (currentUser || (route.view === 'assembly-details' && route.assemblyId)) {
             renderApp();
         } else {
             renderLogin();
         }
     });
+    onAuthChange((user) => {
+        currentUser = user;
+        const route = parseRoute();
+        if (user) {
+            // Authenticated — always render the full app
+            renderApp();
+        } else if (route.view === 'assembly-details' && route.assemblyId) {
+            // No auth but on a public assembly link — render read-only view.
+            // Only re-render if the app shell isn't already showing (avoids
+            // wiping out the initial renderApp() call we made below).
+            if (!document.getElementById('main-content')) {
+                renderApp();
+            }
+        } else {
+            renderLogin();
+        }
+    });
+    // On initial page load there is no hashchange event, so check the URL right away.
+    // If we're on a public assembly link, render the app before auth resolves;
+    // onAuthChange will re-render once Firebase confirms the auth state.
+    const initialRoute = parseRoute();
+    if (initialRoute.view === 'assembly-details' && initialRoute.assemblyId) {
+        renderApp();
+    }
 };
 
 // ─── LOGIN ───────────────────────────────────────────────
@@ -92,6 +113,20 @@ const renderApp = async () => {
                 return;
             }
         } catch (err) {
+            if (!currentUser && err.code === 'permission-denied') {
+                // Firestore rules block unauthenticated reads — show an informative error
+                document.querySelector('#app').innerHTML = `
+                    <div class="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950 p-6">
+                        <div class="max-w-md w-full bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 p-8 text-center">
+                            <span class="material-symbols-outlined text-5xl text-slate-300 dark:text-slate-600">lock</span>
+                            <h2 class="mt-4 text-xl font-bold text-slate-800 dark:text-white">Sign in required</h2>
+                            <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">This assembly link requires a login to view. Please sign in to continue.</p>
+                            <button id="guest-login-fallback" class="mt-6 px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-colors">Sign in with Google</button>
+                        </div>
+                    </div>`;
+                document.getElementById('guest-login-fallback')?.addEventListener('click', () => loginUser());
+                return;
+            }
             navigate('assemblies');
             return;
         }
@@ -100,26 +135,28 @@ const renderApp = async () => {
     const appContainer = document.querySelector('#app');
     appContainer.innerHTML = getAppShellMarkup({ currentUser, currentView, currentDesign, sidebarCollapsed });
 
-    document.getElementById('nav-calendar').addEventListener('click', () => setView('calendar'));
-    document.getElementById('nav-congregations').addEventListener('click', () => setView('congregations'));
-    document.getElementById('nav-assemblies').addEventListener('click', () => setView('assemblies'));
-    document.getElementById('nav-speakers').addEventListener('click', () => setView('speakers'));
-    document.getElementById('nav-reports').addEventListener('click', () => setView('reports'));
+    const bindClick = (id, handler) => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('click', handler);
+    };
+
+    bindClick('nav-calendar', () => setView('calendar'));
+    bindClick('nav-congregations', () => setView('congregations'));
+    bindClick('nav-assemblies', () => setView('assemblies'));
+    bindClick('nav-speakers', () => setView('speakers'));
+    bindClick('nav-reports', () => setView('reports'));
 
     // Mobile nav listeners
-    document.getElementById('mob-nav-calendar').addEventListener('click', () => { setView('calendar'); mobMenu.style.display = 'none'; });
-    document.getElementById('mob-nav-congregations').addEventListener('click', () => { setView('congregations'); mobMenu.style.display = 'none'; });
-    document.getElementById('mob-nav-assemblies').addEventListener('click', () => { setView('assemblies'); mobMenu.style.display = 'none'; });
-    document.getElementById('mob-nav-speakers').addEventListener('click', () => { setView('speakers'); mobMenu.style.display = 'none'; });
-    document.getElementById('mob-nav-reports').addEventListener('click', () => { setView('reports'); mobMenu.style.display = 'none'; });
+    const mobMenu = document.getElementById('mobile-menu');
+    bindClick('mob-nav-calendar', () => { setView('calendar'); if (mobMenu) mobMenu.style.display = 'none'; });
+    bindClick('mob-nav-congregations', () => { setView('congregations'); if (mobMenu) mobMenu.style.display = 'none'; });
+    bindClick('mob-nav-assemblies', () => { setView('assemblies'); if (mobMenu) mobMenu.style.display = 'none'; });
+    bindClick('mob-nav-speakers', () => { setView('speakers'); if (mobMenu) mobMenu.style.display = 'none'; });
+    bindClick('mob-nav-reports', () => { setView('reports'); if (mobMenu) mobMenu.style.display = 'none'; });
 
     // Mobile menu logic
-    const mobMenu = document.getElementById('mobile-menu');
-    document.getElementById('mobile-menu-btn').addEventListener('click', () => mobMenu.style.display = 'block');
-    document.getElementById('close-mobile-menu').addEventListener('click', () => mobMenu.style.display = 'none');
-
-    document.getElementById('mob-nav-calendar').addEventListener('click', () => { setView('calendar'); });
-    document.getElementById('mob-nav-congregations').addEventListener('click', () => { setView('congregations'); });
+    bindClick('mobile-menu-btn', () => { if (mobMenu) mobMenu.style.display = 'block'; });
+    bindClick('close-mobile-menu', () => { if (mobMenu) mobMenu.style.display = 'none'; });
 
     const themeToggle = document.getElementById('theme-toggle');
     const mobThemeToggle = document.getElementById('mob-theme-toggle');
@@ -129,12 +166,14 @@ const renderApp = async () => {
     const logoutBtn = document.getElementById('logout-btn');
     const mobLogoutBtn = document.getElementById('mob-logout-btn');
     const sidebarToggle = document.getElementById('sidebar-toggle');
+    const guestLoginBtn = document.getElementById('guest-login-btn');
+    const mobGuestLoginBtn = document.getElementById('mob-guest-login-btn');
 
     if (themeToggle) themeToggle.addEventListener('click', () => { toggleTheme(); renderApp(); });
-    if (mobThemeToggle) mobThemeToggle.addEventListener('click', () => { toggleTheme(); renderApp(); mobMenu.style.display = 'none'; });
+    if (mobThemeToggle) mobThemeToggle.addEventListener('click', () => { toggleTheme(); renderApp(); if (mobMenu) mobMenu.style.display = 'none'; });
     if (designToggle) designToggle.addEventListener('click', () => toggleDesign());
     if (mobDesignToggleHead) mobDesignToggleHead.addEventListener('click', () => toggleDesign());
-    if (mobDesignToggle) mobDesignToggle.addEventListener('click', () => { toggleDesign(); mobMenu.style.display = 'none'; });
+    if (mobDesignToggle) mobDesignToggle.addEventListener('click', () => { toggleDesign(); if (mobMenu) mobMenu.style.display = 'none'; });
     if (sidebarToggle) sidebarToggle.addEventListener('click', () => {
         sidebarCollapsed = !sidebarCollapsed;
         localStorage.setItem('routing-sidebar-collapsed', String(sidebarCollapsed));
@@ -142,24 +181,28 @@ const renderApp = async () => {
     });
     if (logoutBtn) logoutBtn.addEventListener('click', () => logoutUser());
     if (mobLogoutBtn) mobLogoutBtn.addEventListener('click', () => logoutUser());
+    if (guestLoginBtn) guestLoginBtn.addEventListener('click', () => loginUser());
+    if (mobGuestLoginBtn) mobGuestLoginBtn.addEventListener('click', () => loginUser());
 
     // Search Logic
     const searchInput = document.getElementById('search-input');
     let searchTimeout;
 
-    searchInput.addEventListener('input', (e) => {
-        const term = e.target.value.trim();
-        clearTimeout(searchTimeout);
+    if (searchInput) {
+        searchInput.addEventListener('input', (e) => {
+            const term = e.target.value.trim();
+            clearTimeout(searchTimeout);
 
-        searchTimeout = setTimeout(() => {
-            if (term.length > 2) {
-                renderSearchResults(document.getElementById('main-content'), term);
-            } else if (term.length === 0) {
-                // Restore the current route (keeps shared links like an assembly detail)
-                renderApp();
-            }
-        }, 300);
-    });
+            searchTimeout = setTimeout(() => {
+                if (term.length > 2) {
+                    renderSearchResults(document.getElementById('main-content'), term);
+                } else if (term.length === 0) {
+                    // Restore the current route (keeps shared links like an assembly detail)
+                    renderApp();
+                }
+            }, 300);
+        });
+    }
 
     const mainContent = document.getElementById('main-content');
     if (currentView === 'calendar') {
@@ -318,6 +361,7 @@ const renderAssemblyDetailsView = async (container, currentDay = 1) => renderAss
     setView,
     navigate,
     renderAssembliesView,
+    isReadOnly: !currentUser,
 });
 
 const renderAssemblyModal = async (container, assemblyToEdit = null) => renderAssemblyModalFeature(container, assemblyToEdit, {
