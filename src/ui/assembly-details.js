@@ -809,11 +809,14 @@ export const renderAssemblyDetailsView = async (
             ?.addEventListener("click", () =>
                 renderAssemblySessionReportModal(assembly, talks, activeDay),
             );
-        document
-            .getElementById("print-schedule-btn")
-            ?.addEventListener("click", () =>
-                renderPrintScheduleModal(assembly, talks, activeDay, speakers),
-            );
+        const printScheduleButton = container.querySelector("#print-schedule-btn");
+        if (printScheduleButton) {
+            printScheduleButton.onclick = (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                renderPrintScheduleModal(assembly, talks, activeDay, speakers);
+            };
+        }
         const columnsMenu = container.querySelector("#talk-columns-menu");
         const columnsButton = container.querySelector("#talk-columns-btn");
         const columnsClose = container.querySelector("#talk-columns-close");
@@ -1118,18 +1121,21 @@ export const renderAssemblyDetailsView = async (
             }
         });
 
-        // Add listener for all clickable speaker names in the container
-        container.addEventListener('click', (e) => {
-            const speakerLink = e.target.closest('.active-speaker-link');
-            if (speakerLink) {
-                e.stopPropagation();
-                const id = speakerLink.dataset.id;
-                const email = speakerLink.dataset.email;
-                if (id) {
-                    renderSpeakerDetailsModal(container, id, email);
+        // Add listener for all clickable speaker names in the container (once only)
+        if (!container._speakerLinkListenerAttached) {
+            container._speakerLinkListenerAttached = true;
+            container.addEventListener('click', (e) => {
+                const speakerLink = e.target.closest('.active-speaker-link');
+                if (speakerLink) {
+                    e.stopPropagation();
+                    const id = speakerLink.dataset.id;
+                    const email = speakerLink.dataset.email;
+                    if (id) {
+                        renderSpeakerDetailsModal(container, id, email);
+                    }
                 }
-            }
-        });
+            });
+        }
     } catch (err) {
         container.innerHTML = `<div class="p-8 text-center text-red-500">Error loading details: ${err.message} <br> <button class="mt-4 px-4 py-2 bg-slate-200 rounded" onclick="window.location.reload()">Reload</button></div>`;
     }
@@ -1808,10 +1814,11 @@ const triggerPrint = (assembly, talks, activeDay, options, speakers) => {
 };
 
 const renderPrintScheduleModal = (assembly, talks, activeDay, speakers) => {
+    document.querySelectorAll(".assembly-print-modal").forEach((modal) => modal.remove());
     const isTactician = getStoredDesign() === 'tactician';
     const modal = document.createElement("div");
     modal.className =
-        "fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-[2px] animate-fade-in p-4";
+        "assembly-print-modal fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-[2px] animate-fade-in p-4";
 
     const isThreeDay = assembly.eventType === "Regional Convention (3 Days)";
     const printableColumnsKey = `routing:assembly:${assembly.id}:print-columns`;
@@ -2552,6 +2559,7 @@ const renderChairmenModal = async (
     currentDay,
     options,
 ) => {
+    document.querySelectorAll(".assembly-chairmen-modal").forEach((m) => m.remove());
     const speakers = await getSpeakers();
     const chairmenByDay = assembly.chairmenByDay || {};
     const dayKey = String(currentDay);
@@ -2561,7 +2569,7 @@ const renderChairmenModal = async (
 
     const modal = document.createElement("div");
     modal.className =
-        "fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-[2px] animate-fade-in p-4";
+        "assembly-chairmen-modal fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-[2px] animate-fade-in p-4";
     modal.innerHTML = `
     <div class="bg-white dark:bg-slate-900 w-full max-w-3xl rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden animate-scale-in max-h-[92vh] flex flex-col">
         <div class="px-6 py-5 border-b border-slate-200 dark:border-slate-800 flex items-start justify-between gap-4 bg-slate-50 dark:bg-slate-800/50">
